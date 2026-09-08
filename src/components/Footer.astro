@@ -16,7 +16,7 @@ const nav = [
   <div class="wrap top">
     <div class="about">
       <a href="/" class="brand" aria-label="BSGT — home">
-        <Mark size={22} />
+        <span class="mark"><Mark size={22} weight="bold" /></span>
         <span class="wordmark">BSGT</span>
       </a>
       <p>Bocconi Shipping and Global Trade Student Association</p>
@@ -61,16 +61,23 @@ const nav = [
 
   .brand {
     display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: baseline;
+    gap: 0.3125rem;
     text-decoration: none;
     color: var(--color-gold);
+  }
+
+  .mark {
+    display: inline-flex;
+    /* Same optical alignment as Header.astro, scaled down. See its comment. */
+    transform: translateY(5px);
   }
 
   .wordmark {
     font-family: var(--font-serif);
     font-weight: 600;
     font-size: 1.0625rem;
+    line-height: 1;
     color: var(--color-paper);
   }
 

@@ -15,7 +15,7 @@ const isCurrent = (href: string) => path === href || path.startsWith(`${href}/`)
 <header class="site-header on-dark">
   <div class="wrap bar">
     <a href="/" class="brand" aria-label="BSGT — home">
-      <Mark size={30} />
+      <span class="mark"><Mark size={30} weight="bold" /></span>
       <span class="wordmark">BSGT</span>
     </a>
     <nav aria-label="Primary">
@@ -51,16 +51,31 @@ const isCurrent = (href: string) => path === href || path.startsWith(`${href}/`)
 
   .brand {
     display: inline-flex;
-    align-items: center;
-    gap: 0.625rem;
+    align-items: baseline;
+    gap: 0.375rem;
     text-decoration: none;
     color: var(--color-gold);
+  }
+
+  .mark {
+    display: inline-flex;
+    /*
+     * Optical alignment: the icon's bounding box is taller than "BSGT"'s
+     * cap-height (Newsreader's caps run ~0.7em of its 22px size ≈ 15.4px,
+     * against a 30px icon), so centering on the box would read as
+     * icon-heavy and low. align-items: baseline puts the icon's bottom
+     * edge on the text baseline; this shifts it down so its optical
+     * centre lands on the cap-height band instead. Approximate — revisit
+     * once this can be checked visually.
+     */
+    transform: translateY(7px);
   }
 
   .wordmark {
     font-family: var(--font-serif);
     font-weight: 600;
     font-size: 1.375rem;
+    line-height: 1;
     letter-spacing: 0.02em;
     color: var(--color-paper);
   }
