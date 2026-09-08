@@ -1,0 +1,13 @@
+:root {
+  /* Colour — sampled from the logo file, see bsgt-website-spec.md §5 */
+  --color-navy-deep: #070a1d; /* primary ground, header, footer */
+  --color-navy-mid: #111834; /* secondary surfaces, hover states, card grounds */
+  --color-gold: #f5c877; /* accent only — mark, rules, one element per page. Never on paper. */
+  --color-paper: #f2f4f6; /* article body background */
+  --color-ink: #101820; /* body text on paper */
+  --color-slate: #5a6b7a; /* metadata, captions, secondary text */
+
+  /* Typography — self-hosted, see bsgt-website-spec.md §5 and §7 */
+  --font-serif: 'Newsreader', serif; /* headlines, article body */
+  --font-sans: 'IBM Plex Sans', sans-serif; /* nav, metadata, labels, event details */
+}
