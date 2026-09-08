@@ -34,7 +34,9 @@ const { title, date, startTime, location, type, description, registrationUrl } =
   .type {
     font-family: var(--font-sans);
     font-size: var(--text-xs);
-    color: var(--color-slate);
+    /* Not slate — fails AA on the events page's navy-deep ground. */
+    color: var(--color-paper);
+    opacity: 0.75;
   }
 
   h3 {
@@ -50,7 +52,8 @@ const { title, date, startTime, location, type, description, registrationUrl } =
     margin-top: 0.5rem;
     font-family: var(--font-sans);
     font-size: var(--text-sm);
-    color: var(--color-slate);
+    color: var(--color-paper);
+    opacity: 0.75;
   }
 
   .description {
@@ -59,7 +62,8 @@ const { title, date, startTime, location, type, description, registrationUrl } =
     font-family: var(--font-sans);
     font-size: var(--text-base);
     line-height: var(--leading-normal);
-    color: var(--color-ink);
+    /* Not ink — near-invisible on navy-deep. */
+    color: var(--color-paper);
   }
 
   .register {
@@ -69,6 +73,14 @@ const { title, date, startTime, location, type, description, registrationUrl } =
   }
 
   .register a {
-    color: var(--color-navy-deep);
+    /* Not navy-deep — identical to the page background, invisible. */
+    color: var(--color-paper);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .register a:hover {
+    color: var(--color-gold);
   }
 </style>

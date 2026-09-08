@@ -21,47 +21,52 @@ const past = events
   title="Events — BSGT"
   description="Upcoming and past guest lectures, workshops, and socials from BSGT."
 >
-  <div class="wrap events-page">
-    <header class="page-header">
-      <h1>Events</h1>
-    </header>
+  <div class="events-page on-dark">
+    <div class="wrap">
+      <header class="page-header">
+        <h1>Events</h1>
+      </header>
 
-    <section class="event-section">
-      <h2>Upcoming</h2>
+      <section class="event-section">
+        <h2>Upcoming</h2>
+        {
+          upcoming.length === 0 ? (
+            <p class="empty">No upcoming events right now — check back soon.</p>
+          ) : (
+            <ul class="event-list">
+              {upcoming.map((entry) => (
+                <li>
+                  <EventItem entry={entry} />
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
+
       {
-        upcoming.length === 0 ? (
-          <p class="empty">No upcoming events right now — check back soon.</p>
-        ) : (
-          <ul class="event-list">
-            {upcoming.map((entry) => (
-              <li>
-                <EventItem entry={entry} />
-              </li>
-            ))}
-          </ul>
+        past.length > 0 && (
+          <section class="event-section">
+            <h2>Past</h2>
+            <ul class="event-list">
+              {past.map((entry) => (
+                <li>
+                  <EventItem entry={entry} />
+                </li>
+              ))}
+            </ul>
+          </section>
         )
       }
-    </section>
-
-    {
-      past.length > 0 && (
-        <section class="event-section">
-          <h2>Past</h2>
-          <ul class="event-list">
-            {past.map((entry) => (
-              <li>
-                <EventItem entry={entry} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
+    </div>
   </div>
 </BaseLayout>
 
 <style>
+  /* Dark ground, same reasoning as team.astro — see CLAUDE.md. */
   .events-page {
+    background: var(--color-navy-deep);
+    color: var(--color-paper);
     padding-block: 3rem 4rem;
   }
 
@@ -89,13 +94,17 @@ const past = events
 
   .event-list li + li {
     padding-top: 2rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-slate) 25%, transparent);
+    /* Not slate — a slate-based divider reads as barely-there against
+       navy-deep (both are dark). Paper at low opacity is the site's
+       established dark-ground divider convention (see Footer.astro). */
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
   }
 
   .empty {
     margin-top: 1.5rem;
     font-family: var(--font-serif);
     font-size: var(--text-lg);
-    color: var(--color-slate);
+    color: var(--color-paper);
+    opacity: 0.75;
   }
 </style>

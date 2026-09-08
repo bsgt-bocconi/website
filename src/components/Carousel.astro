@@ -71,7 +71,12 @@ const slides = (
   .empty {
     font-family: var(--font-serif);
     font-size: var(--text-lg);
-    color: var(--color-slate);
+    /* Not slate — this section sits on navy-deep (via the homepage's
+       .scroll-vessel-area), and slate-on-navy-deep fails AA (~3.6:1) at
+       body size. Paper at reduced opacity is the site's dark-ground
+       convention for secondary/empty-state text instead. */
+    color: var(--color-paper);
+    opacity: 0.75;
   }
 
   .carousel {

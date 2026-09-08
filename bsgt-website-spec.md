@@ -124,19 +124,21 @@ division/track the applicant wants; the site does not build separate buttons per
 ### Team
 
 Committee members with name, role, and degree programme. Photos optional — see §7 for the
-consent requirement before publishing any.
+consent requirement before publishing any. `navy-deep` ground — see "Light vs dark grounds"
+below.
 
 ### Articles
 
 Reverse-chronological index. Filterable by tag. Individual article pages are the most
 important template on the site: they are what search traffic lands on and what a prospective
 industry partner is most likely to read. Prioritise reading comfort over everything else.
+`paper` ground — deliberately, always, see "Light vs dark grounds" below.
 
 ### Events
 
 Two groups on one page: upcoming first, then past. Past events are not clutter — they are the
 evidence of activity that makes the association look real to an outside reader. Do not hide
-them.
+them. `navy-deep` ground — see "Light vs dark grounds" below.
 
 ---
 
@@ -262,6 +264,23 @@ badly on `paper`** — never use it for text on light grounds. Gold is for dark 
 
 Gold is the association's signature and loses its force if used everywhere. Spend it on the
 mark, on rules, and on one element per page.
+
+### Light vs dark grounds
+
+**Dark (`navy-deep`) is the association's ground. Light (`paper`) is where you read.** Home,
+Team, and Events are dark, end to end, one continuous ground including headers/sections that
+used to be `paper`. Articles — the index and every individual article page — stay on `paper`
+with `ink` text, permanently, on purpose. This is not an inconsistency to converge later in
+either direction: long-form reading on a dark background is measurably harder, and articles
+are the one template whose entire job is being read start to finish (§1, §3). Everything else
+is association-facing (identity, people, events, recruiting) and can carry the fuller, more
+branded dark treatment gold needs to read as luminous rather than just "a website with a dark
+mode."
+
+On any dark-ground page: body text is `paper`, not `slate` — `slate`-on-`navy-deep` is only
+about 3.6:1, under the 4.5:1 AA floor at body size. Secondary/metadata text is `paper` at
+reduced opacity instead. Links are `paper` with an underline (not `navy-deep`, invisible
+against its own background) and `gold` on hover.
 
 ### Typography
 

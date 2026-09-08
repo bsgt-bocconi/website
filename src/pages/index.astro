@@ -48,7 +48,7 @@ import Carousel from '../components/Carousel.astro';
     </div>
   </section>
 
-  <div class="scroll-vessel-area">
+  <div class="scroll-vessel-area on-dark">
     <div class="scroll-vessel-position" aria-hidden="true">
       <div class="scroll-vessel">
         <img src="/vessel-silhouette.svg" alt="" />
@@ -393,13 +393,17 @@ import Carousel from '../components/Carousel.astro';
   }
 
   /* Scroll-linked vessel — wraps About + the carousel so both share one
-     paper background with the vessel visible behind them. Intentionally
-     does NOT wrap the recruiting section: that's a separate, dark, closing
-     block, and the brief said one moving element at a time (the hero mark)
-     plus this — not three things drifting around simultaneously. */
+     navy-deep ground (matching the hero and recruiting block, so the whole
+     homepage reads as one continuous dark surface) with the vessel visible
+     behind them. Intentionally does NOT wrap the recruiting section: that's
+     a separate closing block, and the brief said one moving element at a
+     time (the hero mark) plus this — not three things drifting at once.
+     --focus-ring switches to gold here via .on-dark; color is set
+     explicitly to paper since .on-dark only handles the focus ring. */
   .scroll-vessel-area {
     position: relative;
-    background: var(--color-paper);
+    background: var(--color-navy-deep);
+    color: var(--color-paper);
     /* Clips the vessel's horizontal travel — this, not the travel range
        itself, is what guarantees no horizontal scrollbar at any width. */
     overflow: hidden;
@@ -420,15 +424,20 @@ import Carousel from '../components/Carousel.astro';
     width: 100%;
     height: auto;
     /*
-     * Opacity verified against AA, not assumed: blending gold #F5C877 at
-     * 0.08 into paper #F2F4F6 shifts relative luminance from 0.9023 to
-     * ~0.876. Worst case in this region is slate (#5A6B7A) body text,
-     * which is already the tightest pairing on the site (4.99:1 on plain
-     * paper) — against the blended colour it computes to ~4.85:1, still
-     * clear of the 4.5:1 AA floor for normal text. Ink-coloured text
-     * (what this page actually uses) has far more headroom regardless.
+     * Opacity verified against AA, not assumed. Now that the ground here
+     * is navy-deep (not paper), gold reads at a genuinely visible strength
+     * without threatening contrast — gold-on-dark is what the token is
+     * for. Blending gold #F5C877 at 0.20 into navy-deep #070A1D gives a
+     * relative luminance of ~0.0312 for the blended patch. Checked both
+     * text tiers used on this ground against that worst-case (directly
+     * over the densest part of the silhouette):
+     *   - full-opacity paper body text:        ~11.7:1
+     *   - 0.75-opacity paper (secondary/meta):   ~7.4:1
+     * Both clear the 4.5:1 AA floor with wide margin. Don't push this much
+     * past ~0.25 without re-checking the dimmed-text case specifically —
+     * it's the tighter of the two.
      */
-    opacity: 0.08;
+    opacity: 0.2;
   }
 
   @supports (animation-timeline: view()) {
@@ -455,11 +464,27 @@ import Carousel from '../components/Carousel.astro';
     }
   }
 
-  /* About content — heading/paragraph sizing comes from .prose (global.css) */
+  /* About content — heading/paragraph sizing comes from .prose (global.css).
+     Text colour itself is inherited from .scroll-vessel-area's `color:
+     paper` — .prose sets no colour of its own for headings/paragraphs, so
+     nothing extra is needed for those. .prose *does* set its own colour
+     for links and blockquotes (navy-deep and slate respectively, both
+     meant for the paper ground articles use), which would be invisible or
+     fail AA here, so those two get scoped overrides — defensive, since the
+     current About copy has neither, but a future edit might. */
   .about-content {
     position: relative;
     z-index: 1;
     padding-block: 4rem;
+  }
+
+  .about-content .prose a {
+    color: var(--color-gold);
+  }
+
+  .about-content .prose blockquote {
+    color: var(--color-paper);
+    opacity: 0.85;
   }
 
   /* .prose h2 normally carries margin-top: 2em, but "About us" is the

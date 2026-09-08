@@ -37,8 +37,12 @@ redirect — this only works once deployed, not in local `astro dev`/`astro prev
 Nav is About → Team → Articles → Events, with About pointing to `/`. The homepage is a
 full-viewport hero (animated mark, staggered fade-in content, a once-per-session intro
 animation) followed by the About prose + image carousel (sharing one scroll-linked
-vessel background), then the recruiting block. See spec §3 for the full description —
-don't rebuild an articles-led homepage, that design was retired.
+vessel background), then the recruiting block, all now one continuous `navy-deep`
+ground end to end. See spec §3 for the full description — don't rebuild an
+articles-led homepage, that design was retired.
+
+`/team` and `/events` are also `navy-deep` now — see "Light vs dark grounds" below
+before touching either.
 
 **Intro animation timing**: one knob, `--intro-duration-ms` (currently `2500`), declared
 on `#intro-overlay` in `src/pages/index.astro`'s `<style>` block. The JS auto-dismiss
@@ -54,11 +58,50 @@ own closing section). Moves horizontally via `animation-timeline: view()`
 (`@supports`-gated) with a `CSS.supports`-feature-detected rAF-scroll-listener fallback
 for browsers without it — both paths track `.scroll-vessel`'s own box, not the taller
 `.scroll-vessel-area` wrapper, so they pace the same way; if you touch one, check the
-other still matches. Opacity (0.08) is contrast-verified against slate-on-paper (the
-tightest existing pairing on the site), not assumed — see the code comment on
-`.scroll-vessel img` in `index.astro` before changing it. `.scroll-vessel-area` needs
-`overflow: hidden` to guarantee no horizontal scrollbar from the animation's travel
-range; don't remove it.
+other still matches. Opacity is `0.2` (bumped up from an initial `0.08` once the region
+went from `paper` to `navy-deep` — gold reads properly on dark, which is what it's for)
+and is contrast-verified, not assumed: gold at that opacity blended into navy-deep, with
+paper body text over the worst case (directly over the densest part of the silhouette),
+computes to ~11.7:1 for full-opacity text and ~7.4:1 for the 0.75-opacity secondary
+tier — see the code comment on `.scroll-vessel img` in `index.astro` for the numbers,
+and re-verify both tiers (not just one) if the opacity changes again.
+`.scroll-vessel-area` needs `overflow: hidden` to guarantee no horizontal scrollbar
+from the animation's travel range; don't remove it.
+
+## Light vs dark grounds — this is deliberate, not an inconsistency
+
+**Dark (`navy-deep`) = the association. Light (`paper`) = where you read.** The
+homepage, `/team`, and `/events` are dark. Article pages (`/articles/[slug]`) and the
+`/articles` index stay on `paper` with `ink` text, on purpose, permanently — do **not**
+"fix" this by making them consistent with the rest of the site in either direction.
+
+Why: long-form reading on a dark background is measurably harder, and articles are the
+one template on this site whose entire job is getting read start to finish (spec §1,
+§3). Every other page is association-facing (identity, people, events) rather than
+reading-facing, so it can afford — and per this rule, should have — the darker, more
+branded treatment gold actually needs to read as luminous (spec §5: "`navy-deep` is
+nearly black, and that is correct").
+
+If a future page is unambiguously about *reading* (a long-form page, not a listing),
+default it to `paper`/`ink`, matching articles. If it's association-facing chrome
+(identity, recruiting, listings of people/events), default it to `navy-deep`/`paper`,
+matching everything else. When genuinely unsure which a new page is, ask rather than
+picking — this distinction is intentional, not a starting point for gradual
+convergence toward one theme.
+
+On any `navy-deep` page: body text is `paper`, never `slate` — `slate`-on-`navy-deep`
+is only ~3.6:1, well under the 4.5:1 AA floor at body size (this was verified by hand,
+not assumed; see `TeamMemberCard.astro`/`EventItem.astro`/`Carousel.astro`/
+`team.astro`/`events.astro` for the fix already applied everywhere it was needed).
+Secondary/metadata text uses `paper` at reduced opacity (0.7–0.85 depending on context)
+instead of `slate`, for a visual hierarchy that stays AA-safe. Links use `paper` with
+an underline (not `navy-deep`, which is invisible against its own background) and
+`gold` on hover. Add `on-dark` to any new dark-ground container — it switches
+`--focus-ring` to `gold` so `:focus-visible` outlines stay visible; it does **not** set
+text colour, which still needs an explicit `color: var(--color-paper)` on that
+container (everything under it inherits from there unless it has its own more specific
+colour rule, in which case that needs fixing individually — see the components above
+for the pattern).
 
 ## Naming convention
 

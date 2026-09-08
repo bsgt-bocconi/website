@@ -12,30 +12,38 @@ const members = (
   title="Team — BSGT"
   description="The committee of the Bocconi Shipping and Global Trade Student Association."
 >
-  <div class="wrap team-page">
-    <header class="page-header">
-      <h1>The Team</h1>
-      <p class="dek">The committee behind BSGT's lectures, workshops, articles, and events.</p>
-    </header>
+  <div class="team-page on-dark">
+    <div class="wrap">
+      <header class="page-header">
+        <h1>The Team</h1>
+        <p class="dek">The committee behind BSGT's lectures, workshops, articles, and events.</p>
+      </header>
 
-    {
-      members.length === 0 ? (
-        <p class="empty">The committee roster hasn't been published yet.</p>
-      ) : (
-        <ul class="team-grid">
-          {members.map((member) => (
-            <li>
-              <TeamMemberCard member={member} />
-            </li>
-          ))}
-        </ul>
-      )
-    }
+      {
+        members.length === 0 ? (
+          <p class="empty">The committee roster hasn't been published yet.</p>
+        ) : (
+          <ul class="team-grid">
+            {members.map((member) => (
+              <li>
+                <TeamMemberCard member={member} />
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
   </div>
 </BaseLayout>
 
 <style>
+  /* Dark ground to match the rest of the association-facing site (see
+     CLAUDE.md: dark = the association, light = where you read — articles
+     stay on paper, this doesn't). Text colour set once here and inherited
+     by everything below, including TeamMemberCard's markup. */
   .team-page {
+    background: var(--color-navy-deep);
+    color: var(--color-paper);
     padding-block: 3rem 4rem;
   }
 
@@ -47,7 +55,10 @@ const members = (
   .dek {
     margin-top: 0.75rem;
     font-family: var(--font-sans);
-    color: var(--color-slate);
+    /* Not slate — fails AA on navy-deep at body size. See Carousel.astro's
+       .empty for the same fix and the reasoning. */
+    color: var(--color-paper);
+    opacity: 0.75;
   }
 
   .team-grid {
@@ -63,6 +74,7 @@ const members = (
   .empty {
     font-family: var(--font-serif);
     font-size: var(--text-lg);
-    color: var(--color-slate);
+    color: var(--color-paper);
+    opacity: 0.75;
   }
 </style>
