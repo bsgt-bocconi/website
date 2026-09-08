@@ -1,133 +1,366 @@
 ---
-import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import ArticleCard from '../components/ArticleCard.astro';
-import EventItem from '../components/EventItem.astro';
-
-const articles = (
-  await getCollection('articles', ({ data }) => import.meta.env.DEV || data.draft === false)
-)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
-  .slice(0, 3);
-
-const todayStart = new Date();
-todayStart.setHours(0, 0, 0, 0);
-
-const nextEvent = (
-  await getCollection('events', ({ data }) => import.meta.env.DEV || data.draft === false)
-)
-  .filter((e) => e.data.date.valueOf() >= todayStart.valueOf())
-  .sort((a, b) => a.data.date.valueOf() - b.data.date.valueOf())[0];
+import Mark from '../components/Mark.astro';
+import Carousel from '../components/Carousel.astro';
 ---
 
 <BaseLayout
   title="BSGT — Bocconi Shipping and Global Trade Student Association"
-  description="BSGT is Bocconi University's student association for shipping, maritime economics, and global trade — publishing student research, hosting industry guest lectures and workshops, and connecting Bocconi's next generation of trade professionals."
+  description="BSGT is Bocconi University's student association exploring shipping through a financial lens — vessel finance, chartering, capital markets, and sustainable finance — connecting students with the maritime industry through guest speakers, workshops, and events."
 >
-  <div class="wrap home">
-    <h1>Bocconi Shipping and Global Trade</h1>
+  <Fragment slot="head">
+    <script is:inline>
+      // Runs before <body> paints, so a repeat-this-session visitor never
+      // sees the intro overlay flash before it's hidden.
+      (function () {
+        try {
+          if (sessionStorage.getItem('bsgt-intro-seen')) {
+            document.documentElement.classList.add('intro-seen');
+          }
+        } catch (err) {
+          /* sessionStorage unavailable (e.g. private mode) — fine, intro just plays again */
+        }
+      })();
+    </script>
+  </Fragment>
 
-    {
-      articles.length === 0 ? (
-        <p class="empty">Our first articles are on the way — check back soon.</p>
-      ) : (
-        <section class="latest">
-          <ul class="article-list">
-            {articles.map((entry) => (
-              <li>
-                <ArticleCard entry={entry} headingLevel="h2" size="lead" />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )
-    }
-
-    {
-      nextEvent && (
-        <section class="next-event">
-          <h2>Next event</h2>
-          <EventItem entry={nextEvent} />
-        </section>
-      )
-    }
-
-    <p class="blurb">
-      BSGT is a recognised student association at Università Bocconi focused on shipping,
-      maritime economics, and global trade.
-      <a href="/about">More about BSGT</a>
-    </p>
+  <div id="intro-overlay" aria-hidden="true">
+    <div class="intro-mark">
+      <Mark weight="fine" size={120} />
+    </div>
   </div>
+
+  <section class="hero on-dark">
+    <div class="hero-mark-wrap" aria-hidden="true">
+      <Mark weight="fine" size={800} class="hero-mark" />
+    </div>
+    <div class="hero-content wrap">
+      <h1 class="slogan">Navigating the future of shipping &amp; maritime finance</h1>
+      <p class="org-name">Bocconi Shipping &amp; Global Trade Student Association</p>
+      <p class="founding">
+        Founded by a group of 11 driven students and supported by an international
+        professional network, July 2026
+      </p>
+      <p class="mission">
+        Bridging the gap between the Bocconi student community and the shipping finance
+        industry.
+      </p>
+    </div>
+  </section>
+
+  <section class="about-content">
+    <div class="wrap">
+      <div class="prose">
+        <h2>About us</h2>
+
+        <h3>Where shipping meets finance.</h3>
+        <p>
+          We are standing at the threshold of major change — and where there is change, there is
+          opportunity. Shipping, at the heart of global trade, is no exception. Geopolitical
+          tensions, climate transition, new technologies and regulation are reshaping the
+          industry and, with it, the way maritime assets are financed, valued and invested in.
+        </p>
+
+        <h3>BSGT explores shipping through a financial lens.</h3>
+        <p>
+          We look at the markets and decisions behind the vessels: shipping finance, vessel
+          valuation, lending, capital markets, S&amp;P and M&amp;A, asset management, chartering,
+          risk and sustainable finance.
+        </p>
+
+        <h3>From Bocconi to the maritime industry.</h3>
+        <p>
+          We want to make shipping finance more accessible to students and bring the industry
+          closer to Bocconi. Through guest speakers, workshops, discussions, industry insights
+          and collaborative events, we connect students with professionals and real-world
+          perspectives.
+        </p>
+
+        <h3>Curious about where capital meets the sea?</h3>
+        <p>
+          Whether you already know shipping or are discovering it for the first time, BSGT is a
+          place to learn, connect and explore an industry where finance, economics and global
+          trade come together.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <Carousel />
+
+  <section class="recruiting on-dark">
+    <div class="wrap">
+      <p class="statement">Think beyond the vessel.</p>
+      <a class="apply-btn" href="https://forms.gle/Ng2gsTbMKWgNvbAM7" target="_blank" rel="noopener">
+        Apply
+      </a>
+    </div>
+  </section>
 </BaseLayout>
 
+<script>
+  const overlay = document.getElementById('intro-overlay');
+  const alreadySeen = document.documentElement.classList.contains('intro-seen');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (overlay && !alreadySeen && !reduceMotion) {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const dismiss = () => {
+      overlay.classList.add('is-dismissed');
+      try {
+        sessionStorage.setItem('bsgt-intro-seen', '1');
+      } catch (err) {
+        /* private mode or similar — nothing to do, intro just plays again next load */
+      }
+      clearTimeout(timer);
+      overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    };
+
+    window.addEventListener('click', dismiss, { once: true });
+    window.addEventListener('keydown', dismiss, { once: true });
+    window.addEventListener('scroll', dismiss, { once: true, passive: true });
+    window.addEventListener('touchstart', dismiss, { once: true, passive: true });
+    timer = setTimeout(dismiss, 1100);
+  } else if (overlay) {
+    overlay.remove();
+  }
+</script>
+
 <style>
-  .home {
-    padding-block: 3rem 4rem;
-  }
-
-  .home > h1 {
-    /*
-     * Real page h1, but styled modestly: the articles below are the
-     * primary content and should read as the most prominent thing on
-     * the page, not a masthead line above them.
-     */
-    max-width: var(--measure);
-    margin-bottom: 2.5rem;
-    font-size: var(--text-xl);
-    color: var(--color-slate);
-  }
-
-  .article-list {
+  /* Intro overlay */
+  #intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
     display: flex;
-    flex-direction: column;
-    gap: 3rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-navy-deep);
+    opacity: 1;
+    transition: opacity 0.3s ease;
   }
 
-  .article-list li + li {
-    padding-top: 3rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-slate) 25%, transparent);
+  #intro-overlay.is-dismissed {
+    opacity: 0;
+    pointer-events: none;
   }
 
-  .empty {
-    max-width: var(--measure);
+  .intro-mark {
+    color: var(--color-gold);
+    opacity: 0;
+    animation: intro-mark-in 0.8s ease-out forwards;
+  }
+
+  @keyframes intro-mark-in {
+    0% {
+      opacity: 0;
+      scale: 0.85;
+    }
+    60% {
+      opacity: 1;
+      scale: 1.04;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  html.intro-seen #intro-overlay {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #intro-overlay {
+      display: none !important;
+    }
+  }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    background: var(--color-navy-deep);
+  }
+
+  .hero-mark-wrap {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @supports (animation-timeline: scroll()) {
+    .hero-mark-wrap {
+      animation: hero-parallax 1s linear both;
+      animation-timeline: scroll(root);
+    }
+  }
+
+  @keyframes hero-parallax {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(70px);
+    }
+  }
+
+  .hero-mark-wrap :global(.hero-mark) {
+    position: absolute;
+    top: 50%;
+    right: -10%;
+    translate: 0 -50%;
+    width: clamp(480px, 65vw, 1100px);
+    height: auto;
+    color: var(--color-gold);
+    animation: hero-mark-drift 150s linear infinite;
+  }
+
+  @keyframes hero-mark-drift {
+    0% {
+      rotate: 0deg;
+      opacity: 0.1;
+    }
+    50% {
+      rotate: 180deg;
+      opacity: 0.16;
+    }
+    100% {
+      rotate: 360deg;
+      opacity: 0.1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-mark-wrap {
+      animation: none !important;
+    }
+    .hero-mark-wrap :global(.hero-mark) {
+      animation: none !important;
+      opacity: 0.1;
+    }
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    padding-block: 6rem;
+    max-width: 46rem;
+  }
+
+  .slogan,
+  .org-name,
+  .founding,
+  .mission {
+    opacity: 0;
+  }
+
+  .slogan {
+    font-size: var(--text-3xl);
+    color: var(--color-paper);
+    animation: fade-in-up 0.9s ease-out 0.1s forwards;
+  }
+
+  .org-name {
+    margin-top: 1.5rem;
     font-family: var(--font-serif);
-    font-size: var(--text-lg);
-    color: var(--color-slate);
+    font-size: var(--text-xl);
+    color: var(--color-gold);
+    animation: fade-in-up 0.9s ease-out 0.5s forwards;
   }
 
-  .next-event {
-    max-width: var(--measure);
-    margin-top: 3.5rem;
-    padding-top: 2.5rem;
-    border-top: 2px solid var(--color-gold);
-  }
-
-  .next-event h2 {
-    font-size: var(--text-lg);
-    font-family: var(--font-sans);
-    font-weight: 600;
-  }
-
-  .next-event :global(.event) {
+  .founding,
+  .mission {
     margin-top: 1rem;
-  }
-
-  .blurb {
-    max-width: 40rem;
-    margin-top: 3.5rem;
+    max-width: 36rem;
     font-family: var(--font-sans);
     font-size: var(--text-base);
-    color: var(--color-ink);
+    line-height: var(--leading-normal);
+    color: var(--color-paper);
+    opacity: 0;
   }
 
-  .blurb a {
+  .founding {
+    animation: fade-in-up-dim 0.9s ease-out 0.9s forwards;
+  }
+
+  .mission {
+    animation: fade-in-up-dim 0.9s ease-out 1.1s forwards;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Same entrance as fade-in-up, but settles at 0.85 opacity — founding/
+     mission read as a quieter tier than the slogan and org name. */
+  @keyframes fade-in-up-dim {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 0.85;
+      transform: translateY(0);
+    }
+  }
+
+  /* About content — heading/paragraph sizing comes from .prose (global.css) */
+  .about-content {
+    background: var(--color-paper);
+    padding-block: 4rem;
+  }
+
+  /* .prose h2 normally carries margin-top: 2em, but "About us" is the
+     section's first element and shouldn't have a gap above it. */
+  .about-content .prose > h2:first-child {
+    margin-top: 0;
+  }
+
+  /* Recruiting */
+  .recruiting {
+    background: var(--color-navy-deep);
+    padding-block: 6rem;
+    text-align: left;
+  }
+
+  .statement {
+    font-family: var(--font-serif);
+    font-size: clamp(2.5rem, 2rem + 2vw, 4rem);
+    line-height: var(--leading-tight);
+    /* Deliberately quiet — sized as WCAG "large text" so the ~3.3:1 blend
+       against navy-deep still clears the AA large-text contrast floor. */
+    color: color-mix(in srgb, var(--color-paper) 38%, var(--color-navy-deep));
+    max-width: 30ch;
+  }
+
+  .apply-btn {
     display: inline-block;
-    margin-left: 0.375rem;
+    margin-top: 2rem;
+    padding: 0.875rem 2rem;
+    background: var(--color-gold);
     color: var(--color-navy-deep);
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.2em;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--text-base);
+    text-decoration: none;
+    border-radius: 2px;
+  }
+
+  .apply-btn:hover {
+    background: color-mix(in srgb, var(--color-gold) 85%, white);
   }
 </style>

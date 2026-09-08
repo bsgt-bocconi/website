@@ -31,13 +31,18 @@ and general search traffic arriving at individual articles (reach).
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Framework | Astro | Static output. No client-side rendering for content. |
+| Framework | Astro | Static output. No client-side rendering for content — see note below on the small exception. |
 | Content | Markdown files in-repo, via Astro content collections | No CMS. Content is edited by the maintainer using Claude Code. |
 | Hosting | Cloudflare Pages | Auto-deploy from `main`. Preview URLs on branches. |
 | Repo | GitHub, under a BSGT organisation | Not a personal account. |
 | Analytics | Cloudflare Web Analytics | Cookieless, no consent banner required. |
 | Fonts | Self-hosted, bundled locally | Must NOT load from Google Fonts CDN. See §7. |
-| Forms | None in v1 | Recruiting CTA links out. See §8. |
+| Forms | None hosted on this site | Recruiting CTA links out to an external Google Form. See §3, §8. |
+
+"No client-side rendering for content" means what it says — content is not JS-rendered. It
+does not forbid small, scoped interaction-only scripts that add no content of their own: the
+homepage carousel's keyboard-arrow handling and its once-per-session intro-animation check
+are the only two such scripts on the site (see §3). Nothing else should use client-side JS.
 
 **No database. No server. No authentication. No third-party embeds that set cookies.**
 These are deliberate constraints, not omissions — they keep the security and compliance
@@ -48,8 +53,7 @@ surface near zero. Do not introduce any of them without an explicit decision to 
 ## 3. Sitemap
 
 ```
-/                       Home
-/about                  About Us / What We Do  → recruiting block at page bottom
+/                       Home / About — hero, about content, carousel, recruiting block
 /team                   The Team
 /articles               Article index
 /articles/[slug]        Individual article
@@ -57,32 +61,48 @@ surface near zero. Do not introduce any of them without an explicit decision to 
 /privacy                Privacy policy
 ```
 
-Flat and shallow on purpose. Seven routes plus article pages.
+Flat and shallow on purpose. Six routes plus article pages.
 
 **URL structure is a one-time decision.** Changing `/articles/[slug]` later costs
 accumulated search ranking. Lock it now.
 
-### Home
+`/about` no longer exists as a separate route — it redirects to `/` (`public/_redirects`,
+a Cloudflare Pages redirect, 301). Nav is About, Team, Articles, Events; About points to `/`.
 
-Not a landing page with feature cards. It is a front page. The most recent three or four
-articles are the primary content, set at full editorial weight — headline, author, date,
-standfirst — followed by the next upcoming event and a single short line on what BSGT is
-with a link through to /about.
+### Home / About
 
-The reasoning: the articles are the thing that makes BSGT worth visiting and the thing that
-brings in search traffic. Leading with them is both more distinctive than a generic hero and
-a more honest signal of what the association actually does.
+These are the same page now — About *is* the homepage, not a separate route. One `<h1>`
+(the hero slogan).
 
-### About Us / What We Do
+**Hero.** Full-viewport, on `navy-deep`. Behind the content, an ambient SVG/CSS-only
+animated treatment of the mark — slow drift/rotation, a subtle scroll parallax (progressive
+enhancement via `animation-timeline: scroll()`, degrades to just the drift where
+unsupported), gold catching light. No Three.js, no WebGL. Fully disabled under
+`prefers-reduced-motion`. Content fades in on load, in order: the slogan (dominant, the
+page's `<h1>`), the full association name, then the founding line and mission statement
+(smaller, quieter tier).
 
-Single page, continuous prose rather than chopped into cards. Covers: why the association
-exists, what makes it distinct from Bocconi's other associations, and the four activity
-strands — industry exposure and guest lectures, knowledge production (the articles),
-practical workshops, and networking.
+A brief once-per-session intro animation (a short mark animation, under 1.5s, gated on
+`sessionStorage` so it doesn't replay on every page within a session) plays over the hero
+before resolving. It must never delay or block the hero content underneath from rendering —
+the hero renders and starts its own fade-in immediately regardless of the overlay; the
+overlay is purely an additive layer on top of it. Skippable on click, scroll, or keypress.
+Entirely skipped (not just shortened) under `prefers-reduced-motion`.
 
-The recruiting block sits at the bottom of this page, after a reader has the context to want
-it. It is a section, not a separate route. Contains: who BSGT is looking for, what membership
-involves, when recruitment happens, and a single clear action.
+**About content**, below the hero, continuous prose rather than chopped into cards — see the
+copy in the repo (`src/pages/index.astro`) for the exact wording, which should be treated as
+fixed unless BSGT itself asks for a copy change; don't silently rewrite it.
+
+**Image carousel.** A CSS scroll-snap carousel (no library), swipeable and keyboard-arrow
+navigable, that must not trap focus. One real photo exists (`brand/vessel.jpg`); the rest
+are placeholder slides, clearly marked, until real photography is supplied.
+
+**Recruiting block**, at the end of the page: a quiet, large statement ("Think beyond the
+vessel.") set back against the navy — deliberately lower-contrast than the foreground, but
+still sized as WCAG large text so it clears the AA large-text 3:1 floor rather than actually
+failing contrast — with one prominent "Apply" button linking out to the membership form
+(external, `rel="noopener"`, opens in a new tab). The form itself handles which
+division/track the applicant wants; the site does not build separate buttons per division.
 
 ### Team
 
@@ -165,6 +185,9 @@ Supplied in `/brand`:
 - `favicon.svg` — a deliberately heavier-weight redraw of the same mark. The full-size
   mark's hairlines vanish below about 48px, so the favicon is its own drawing. Do not
   substitute one for the other.
+- `vessel.jpg` — the first real photograph supplied for the site, used as the first slide
+  of the homepage carousel. More photography will follow; until it does, the remaining
+  carousel slides are clearly-marked placeholders (see §3).
 
 **The "BSGT" wordmark is live HTML text, not an image.** Set it in the heading serif
 alongside the mark. This keeps it sharp at all sizes, selectable, readable by screen
@@ -172,6 +195,18 @@ readers, and indexable. There is no wordmark asset and none should be created.
 
 An Open Graph share image (1200×630, mark and full association name on `navy-deep`) still
 needs producing.
+
+### Naming convention
+
+The association's full name appears in two different forms depending on context:
+
+| Context | Form |
+|---|---|
+| Display text a person reads on the page (hero, footer, prose) | "Bocconi Shipping **&** Global Trade Student Association" |
+| Machine-readable text: `<title>`, meta description, Organization JSON-LD, Open Graph tags | "Bocconi Shipping **and** Global Trade Student Association" |
+
+Apply this consistently sitewide. It doesn't apply to the "BSGT" abbreviation itself, which
+is used freely in both contexts.
 
 ### Colour
 
@@ -220,7 +255,9 @@ centred everything is the association-website default. Structural devices (rules
 should encode real information: a gold hairline separating article metadata from body earns
 its place; decorative dividers do not.
 
-Motion: one deliberate moment at most. No fade-and-slide on every section.
+Motion: one deliberate moment at most — **except the homepage hero**, which is a scoped,
+intentional exception (ambient mark animation, intro sequence, staggered content reveal; see
+§3). Everywhere else on the site, no fade-and-slide on every section.
 
 ### Quality floor
 

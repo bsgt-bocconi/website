@@ -25,7 +25,31 @@ that spec when something here is unclear or missing.
   `@fontsource-variable/*` npm packages; those packages are **not** a
   runtime dependency — don't reinstall them, just add more subset/weight
   files the same way if a future need arises.
-- **Forms**: none in v1. Recruiting CTA links out instead.
+- **Forms**: none hosted on this site. The recruiting "Apply" CTA links out to an
+  external Google Form (`https://forms.gle/Ng2gsTbMKWgNvbAM7`), which handles
+  division/track choice internally — don't build separate buttons per division.
+
+## Site structure
+
+`/` is the homepage **and** the About page — they were merged; there is no separate
+`/about` route (it 301-redirects to `/` via `public/_redirects`, a Cloudflare Pages
+redirect — this only works once deployed, not in local `astro dev`/`astro preview`).
+Nav is About → Team → Articles → Events, with About pointing to `/`. The homepage is a
+full-viewport hero (animated mark, staggered fade-in content, a once-per-session intro
+animation) followed by the About prose, an image carousel, and the recruiting block. See
+spec §3 for the full description — don't rebuild an articles-led homepage, that design
+was retired.
+
+## Naming convention
+
+The full association name has two forms, applied consistently sitewide (see spec §5):
+
+- **Display text people read** (hero, footer, prose): "Bocconi Shipping **&** Global
+  Trade Student Association" — ampersand.
+- **Machine-readable text** (`<title>`, meta description, Organization JSON-LD, Open
+  Graph tags): "Bocconi Shipping **and** Global Trade Student Association" — spelled out.
+
+Doesn't apply to "BSGT" itself, which is used freely in both contexts.
 
 ## Hard constraints (do not introduce without an explicit decision)
 
@@ -34,6 +58,12 @@ that spec when something here is unclear or missing.
   embeds — link out or use click-to-load placeholders).
 - No Google Analytics, no tag manager, no tracking pixels.
 - No Google Fonts CDN — fonts are bundled locally.
+- No client-side JS beyond interaction-only scripts that render no content of
+  their own. Currently exactly two: the homepage carousel's keyboard-arrow
+  handling, and its once-per-session intro-animation `sessionStorage` check
+  (`src/pages/index.astro`, `src/components/Carousel.astro`). Don't add a
+  third without a real reason — CSS/native-HTML solves almost everything else
+  on this site.
 
 ## Content model (see spec §4 for exact field types)
 
@@ -110,3 +140,12 @@ sitemaps to Search Console/Bing, or share the link publicly until there is
 real content (real articles, real committee roster with recorded consent,
 real events). A Pages preview URL existing is fine pre-launch; a live
 custom domain is not.
+
+**Known gap, flagged not fixed:** the homepage carousel's placeholder slides
+(`src/components/Carousel.astro`) are hardcoded in the component, not a
+content collection entry, so they have **no `draft` gate** — they render in
+production builds same as dev. They're clearly labeled as placeholders in
+their own text, but unlike articles/events/team, there's no mechanism to
+hide them automatically. Swap them for real photography by editing the
+component directly when it's supplied; if a "keep placeholders out of prod"
+mechanism is wanted here too, that's an open ask, not something built.
