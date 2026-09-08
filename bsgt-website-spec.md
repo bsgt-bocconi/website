@@ -129,6 +129,7 @@ location: string
 type: enum                # lecture | workshop | social | other
 description: string
 registrationUrl: url?
+draft: boolean            # default true
 ```
 Upcoming versus past is derived from `date`. Never a manual flag.
 
@@ -140,7 +141,13 @@ programme: string?
 photo: image?
 linkedin: url?
 order: number
+draft: boolean            # default true
 ```
+
+All three collections carry `draft`, same treatment: placeholder entries are seeded
+`draft: true` and excluded from production builds by default. A placeholder person or event
+leaking to production is worse than a placeholder article — don't skip this on Event or Team
+just because it's more work.
 
 ---
 

@@ -26,6 +26,7 @@ const events = defineCollection({
     type: z.enum(['lecture', 'workshop', 'social', 'other']),
     description: z.string(),
     registrationUrl: z.string().url().optional(),
+    draft: z.boolean().default(true),
   }),
 });
 
@@ -39,6 +40,7 @@ const team = defineCollection({
       photo: image().optional(),
       linkedin: z.string().url().optional(),
       order: z.number(),
+      draft: z.boolean().default(true),
     }),
 });
 

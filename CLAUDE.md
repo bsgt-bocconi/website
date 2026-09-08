@@ -40,9 +40,18 @@ that spec when something here is unclear or missing.
 - **Article**: title, slug (stable, never change post-publish), summary,
   author, date, tags, heroImage?, draft (default true).
 - **Event**: title, date, startTime?, location, type (lecture|workshop|
-  social|other), description, registrationUrl?. Upcoming/past is derived
-  from `date`, never a manual flag.
-- **Team member**: name, role, programme?, photo?, linkedin?, order.
+  social|other), description, registrationUrl?, draft (default true).
+  Upcoming/past is derived from `date`, never a manual flag.
+- **Team member**: name, role, programme?, photo?, linkedin?, order,
+  draft (default true).
+
+All three collections have `draft`, same treatment: every page/query that
+reads a collection must filter `import.meta.env.DEV || data.draft === false`
+(see `src/pages/index.astro`, `articles/*`, `team.astro`, `events.astro`
+for the pattern). A placeholder person or event leaking to production is
+worse than a placeholder article — don't add a new placeholder entry to
+any of these three collections without `draft: true`, and don't add a new
+page/query against them without the same filter.
 
 ## Brand tokens
 
@@ -94,9 +103,10 @@ machine-specific reason:
 
 ## Build vs. launch (spec §9)
 
-Placeholder articles/team entries exist to verify templates and are seeded
-under `draft: true` so they're excluded from production builds. **Build
-complete ≠ launch.** Do not point the custom domain, submit sitemaps to
-Search Console/Bing, or share the link publicly until there is real content
-(real articles, real committee roster with recorded consent). A Pages
-preview URL existing is fine pre-launch; a live custom domain is not.
+Placeholder articles/events/team entries exist to verify templates and are
+seeded under `draft: true` so they're excluded from production builds.
+**Build complete ≠ launch.** Do not point the custom domain, submit
+sitemaps to Search Console/Bing, or share the link publicly until there is
+real content (real articles, real committee roster with recorded consent,
+real events). A Pages preview URL existing is fine pre-launch; a live
+custom domain is not.

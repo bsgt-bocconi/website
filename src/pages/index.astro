@@ -13,7 +13,9 @@ const articles = (
 const todayStart = new Date();
 todayStart.setHours(0, 0, 0, 0);
 
-const nextEvent = (await getCollection('events'))
+const nextEvent = (
+  await getCollection('events', ({ data }) => import.meta.env.DEV || data.draft === false)
+)
   .filter((e) => e.data.date.valueOf() >= todayStart.valueOf())
   .sort((a, b) => a.data.date.valueOf() - b.data.date.valueOf())[0];
 ---
