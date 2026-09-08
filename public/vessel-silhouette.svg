@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" role="img" aria-label="Container vessel silhouette">
+  <g fill="#F5C877">
+    <!-- Hull -->
+    <path d="M20 92 C20 88 30 78 45 70 L355 70 C370 78 385 82 385 88 L385 92 C300 100 100 100 20 92 Z" />
+    <!-- Container stacks -->
+    <rect x="60" y="48" width="28" height="22" />
+    <rect x="95" y="52" width="28" height="18" />
+    <rect x="130" y="44" width="28" height="26" />
+    <rect x="165" y="50" width="28" height="20" />
+    <rect x="200" y="46" width="28" height="24" />
+    <rect x="235" y="54" width="28" height="16" />
+    <rect x="270" y="48" width="28" height="22" />
+    <!-- Bridge -->
+    <rect x="305" y="40" width="40" height="30" />
+    <rect x="317" y="26" width="16" height="14" />
+    <rect x="333" y="18" width="4" height="10" />
+  </g>
+</svg>

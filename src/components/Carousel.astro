@@ -53,7 +53,13 @@ const slides = (
 
 <style>
   .carousel-section {
-    background: var(--color-paper);
+    /* No background here deliberately — this section sits inside the
+       homepage's .scroll-vessel-area, which supplies a shared paper
+       background so the scroll-linked vessel graphic behind it stays
+       visible. Don't re-add an opaque background; it would hide the
+       vessel wherever this section overlaps it. */
+    position: relative;
+    z-index: 1;
     padding-block: 3.5rem;
   }
 

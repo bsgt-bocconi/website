@@ -48,45 +48,54 @@ import Carousel from '../components/Carousel.astro';
     </div>
   </section>
 
-  <section class="about-content">
-    <div class="wrap">
-      <div class="prose">
-        <h2>About us</h2>
-
-        <h3>Where shipping meets finance.</h3>
-        <p>
-          We are standing at the threshold of major change — and where there is change, there is
-          opportunity. Shipping, at the heart of global trade, is no exception. Geopolitical
-          tensions, climate transition, new technologies and regulation are reshaping the
-          industry and, with it, the way maritime assets are financed, valued and invested in.
-        </p>
-
-        <h3>BSGT explores shipping through a financial lens.</h3>
-        <p>
-          We look at the markets and decisions behind the vessels: shipping finance, vessel
-          valuation, lending, capital markets, S&amp;P and M&amp;A, asset management, chartering,
-          risk and sustainable finance.
-        </p>
-
-        <h3>From Bocconi to the maritime industry.</h3>
-        <p>
-          We want to make shipping finance more accessible to students and bring the industry
-          closer to Bocconi. Through guest speakers, workshops, discussions, industry insights
-          and collaborative events, we connect students with professionals and real-world
-          perspectives.
-        </p>
-
-        <h3>Curious about where capital meets the sea?</h3>
-        <p>
-          Whether you already know shipping or are discovering it for the first time, BSGT is a
-          place to learn, connect and explore an industry where finance, economics and global
-          trade come together.
-        </p>
+  <div class="scroll-vessel-area">
+    <div class="scroll-vessel-position" aria-hidden="true">
+      <div class="scroll-vessel">
+        <img src="/vessel-silhouette.svg" alt="" />
       </div>
     </div>
-  </section>
 
-  <Carousel />
+    <section class="about-content">
+      <div class="wrap">
+        <div class="prose">
+          <h2>About us</h2>
+
+          <h3>Where shipping meets finance.</h3>
+          <p>
+            We are standing at the threshold of major change — and where there is change, there
+            is opportunity. Shipping, at the heart of global trade, is no exception.
+            Geopolitical tensions, climate transition, new technologies and regulation are
+            reshaping the industry and, with it, the way maritime assets are financed, valued
+            and invested in.
+          </p>
+
+          <h3>BSGT explores shipping through a financial lens.</h3>
+          <p>
+            We look at the markets and decisions behind the vessels: shipping finance, vessel
+            valuation, lending, capital markets, S&amp;P and M&amp;A, asset management,
+            chartering, risk and sustainable finance.
+          </p>
+
+          <h3>From Bocconi to the maritime industry.</h3>
+          <p>
+            We want to make shipping finance more accessible to students and bring the industry
+            closer to Bocconi. Through guest speakers, workshops, discussions, industry insights
+            and collaborative events, we connect students with professionals and real-world
+            perspectives.
+          </p>
+
+          <h3>Curious about where capital meets the sea?</h3>
+          <p>
+            Whether you already know shipping or are discovering it for the first time, BSGT is
+            a place to learn, connect and explore an industry where finance, economics and
+            global trade come together.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <Carousel />
+  </div>
 
   <section class="recruiting on-dark">
     <div class="wrap">
@@ -121,15 +130,77 @@ import Carousel from '../components/Carousel.astro';
     window.addEventListener('keydown', dismiss, { once: true });
     window.addEventListener('scroll', dismiss, { once: true, passive: true });
     window.addEventListener('touchstart', dismiss, { once: true, passive: true });
-    timer = setTimeout(dismiss, 1100);
+
+    // Read the same --intro-duration-ms the CSS animation uses, so the
+    // auto-dismiss timer and the visual entrance never drift apart.
+    const introDurationMs =
+      parseFloat(getComputedStyle(overlay).getPropertyValue('--intro-duration-ms')) || 2500;
+    timer = setTimeout(dismiss, introDurationMs);
   } else if (overlay) {
     overlay.remove();
+  }
+</script>
+
+<script>
+  // Fallback for browsers without CSS scroll-driven animations
+  // (animation-timeline: view()) — feature-detected, not UA-sniffed. The
+  // @supports block in this page's <style> handles the modern path; this
+  // only runs when that path is unavailable.
+  const supportsViewTimeline = CSS.supports('animation-timeline: view()');
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (!supportsViewTimeline && !prefersReducedMotion) {
+    const vessel = document.querySelector<HTMLElement>('.scroll-vessel');
+
+    if (vessel) {
+      let ticking = false;
+
+      // Tracks .scroll-vessel's own box, the same element the CSS
+      // view()-timeline animation targets — not the much taller
+      // .scroll-vessel-area it sits inside — so the two paths pace the
+      // same way. Mirrors the "cover" range a view() timeline uses: 0%
+      // when the element's top edge reaches the viewport's bottom edge
+      // (just entering), 100% when its bottom edge reaches the
+      // viewport's top edge (just finished leaving). Reading
+      // getBoundingClientRect() here is safe even though this same
+      // element is what gets the transform written to it below — the
+      // transform is horizontal-only (translateX), so it never affects
+      // the vertical top/height this calculation reads.
+      const update = () => {
+        const rect = vessel.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const total = rect.height + viewportHeight;
+        const traveled = viewportHeight - rect.top;
+        const progress = Math.min(1, Math.max(0, traveled / total));
+        const offsetVw = -15 + progress * 30;
+        vessel.style.transform = `translateX(${offsetVw}vw)`;
+        ticking = false;
+      };
+
+      const onScroll = () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(update);
+      };
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', onScroll, { passive: true });
+      update();
+    }
   }
 </script>
 
 <style>
   /* Intro overlay */
   #intro-overlay {
+    /*
+     * Single source of truth for the intro's length — tune this one
+     * value, nothing else. Unitless ms (not a time value) so the JS
+     * auto-dismiss timer below can read and parse it directly; CSS
+     * turns it into a time via calc(... * 1ms).
+     */
+    --intro-duration-ms: 2500;
+
     position: fixed;
     inset: 0;
     z-index: 200;
@@ -149,7 +220,7 @@ import Carousel from '../components/Carousel.astro';
   .intro-mark {
     color: var(--color-gold);
     opacity: 0;
-    animation: intro-mark-in 0.8s ease-out forwards;
+    animation: intro-mark-in calc(var(--intro-duration-ms) * 1ms) ease-out forwards;
   }
 
   @keyframes intro-mark-in {
@@ -157,9 +228,12 @@ import Carousel from '../components/Carousel.astro';
       opacity: 0;
       scale: 0.85;
     }
-    60% {
+    35% {
       opacity: 1;
-      scale: 1.04;
+      scale: 1.02;
+    }
+    70% {
+      scale: 1;
     }
     100% {
       opacity: 1;
@@ -318,9 +392,73 @@ import Carousel from '../components/Carousel.astro';
     }
   }
 
+  /* Scroll-linked vessel — wraps About + the carousel so both share one
+     paper background with the vessel visible behind them. Intentionally
+     does NOT wrap the recruiting section: that's a separate, dark, closing
+     block, and the brief said one moving element at a time (the hero mark)
+     plus this — not three things drifting around simultaneously. */
+  .scroll-vessel-area {
+    position: relative;
+    background: var(--color-paper);
+    /* Clips the vessel's horizontal travel — this, not the travel range
+       itself, is what guarantees no horizontal scrollbar at any width. */
+    overflow: hidden;
+  }
+
+  .scroll-vessel-position {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: clamp(320px, 55vw, 640px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .scroll-vessel img {
+    display: block;
+    width: 100%;
+    height: auto;
+    /*
+     * Opacity verified against AA, not assumed: blending gold #F5C877 at
+     * 0.08 into paper #F2F4F6 shifts relative luminance from 0.9023 to
+     * ~0.876. Worst case in this region is slate (#5A6B7A) body text,
+     * which is already the tightest pairing on the site (4.99:1 on plain
+     * paper) — against the blended colour it computes to ~4.85:1, still
+     * clear of the 4.5:1 AA floor for normal text. Ink-coloured text
+     * (what this page actually uses) has far more headroom regardless.
+     */
+    opacity: 0.08;
+  }
+
+  @supports (animation-timeline: view()) {
+    .scroll-vessel {
+      animation: vessel-scroll-x linear both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
+  }
+
+  @keyframes vessel-scroll-x {
+    from {
+      transform: translateX(-15vw);
+    }
+    to {
+      transform: translateX(15vw);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-vessel {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+
   /* About content — heading/paragraph sizing comes from .prose (global.css) */
   .about-content {
-    background: var(--color-paper);
+    position: relative;
+    z-index: 1;
     padding-block: 4rem;
   }
 

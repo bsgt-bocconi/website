@@ -36,9 +36,29 @@ that spec when something here is unclear or missing.
 redirect — this only works once deployed, not in local `astro dev`/`astro preview`).
 Nav is About → Team → Articles → Events, with About pointing to `/`. The homepage is a
 full-viewport hero (animated mark, staggered fade-in content, a once-per-session intro
-animation) followed by the About prose, an image carousel, and the recruiting block. See
-spec §3 for the full description — don't rebuild an articles-led homepage, that design
-was retired.
+animation) followed by the About prose + image carousel (sharing one scroll-linked
+vessel background), then the recruiting block. See spec §3 for the full description —
+don't rebuild an articles-led homepage, that design was retired.
+
+**Intro animation timing**: one knob, `--intro-duration-ms` (currently `2500`), declared
+on `#intro-overlay` in `src/pages/index.astro`'s `<style>` block. The JS auto-dismiss
+timer reads this same custom property via `getComputedStyle` rather than having its own
+hardcoded number — change the CSS value only, both the animation length and the timer
+follow it automatically.
+
+**Scroll-linked vessel**: `brand/vessel-silhouette.svg` (canonical, editable) /
+`public/vessel-silhouette.svg` (served copy — keep both in sync if it's edited), a flat
+gold geometric ship silhouette, sits behind the About + carousel region only (not the
+hero — that's the animated mark's territory, and not the recruiting block, which is its
+own closing section). Moves horizontally via `animation-timeline: view()`
+(`@supports`-gated) with a `CSS.supports`-feature-detected rAF-scroll-listener fallback
+for browsers without it — both paths track `.scroll-vessel`'s own box, not the taller
+`.scroll-vessel-area` wrapper, so they pace the same way; if you touch one, check the
+other still matches. Opacity (0.08) is contrast-verified against slate-on-paper (the
+tightest existing pairing on the site), not assumed — see the code comment on
+`.scroll-vessel img` in `index.astro` before changing it. `.scroll-vessel-area` needs
+`overflow: hidden` to guarantee no horizontal scrollbar from the animation's travel
+range; don't remove it.
 
 ## Naming convention
 
@@ -59,11 +79,13 @@ Doesn't apply to "BSGT" itself, which is used freely in both contexts.
 - No Google Analytics, no tag manager, no tracking pixels.
 - No Google Fonts CDN — fonts are bundled locally.
 - No client-side JS beyond interaction-only scripts that render no content of
-  their own. Currently exactly two: the homepage carousel's keyboard-arrow
-  handling, and its once-per-session intro-animation `sessionStorage` check
-  (`src/pages/index.astro`, `src/components/Carousel.astro`). Don't add a
-  third without a real reason — CSS/native-HTML solves almost everything else
-  on this site.
+  their own. Currently three, all in `src/pages/index.astro` /
+  `src/components/Carousel.astro`: the carousel's keyboard-arrow handling,
+  the once-per-session intro-animation `sessionStorage` check, and the
+  scroll-linked vessel's fallback for browsers without
+  `animation-timeline: view()` (feature-detected via `CSS.supports`, not
+  UA-sniffed — see "Scroll-linked vessel" below). Don't add a fourth without
+  a real reason — CSS/native-HTML solves almost everything else on this site.
 
 ## Content model (see spec §4 for exact field types)
 

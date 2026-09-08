@@ -82,12 +82,26 @@ unsupported), gold catching light. No Three.js, no WebGL. Fully disabled under
 page's `<h1>`), the full association name, then the founding line and mission statement
 (smaller, quieter tier).
 
-A brief once-per-session intro animation (a short mark animation, under 1.5s, gated on
-`sessionStorage` so it doesn't replay on every page within a session) plays over the hero
-before resolving. It must never delay or block the hero content underneath from rendering —
-the hero renders and starts its own fade-in immediately regardless of the overlay; the
-overlay is purely an additive layer on top of it. Skippable on click, scroll, or keypress.
-Entirely skipped (not just shortened) under `prefers-reduced-motion`.
+A brief once-per-session intro animation (a short mark animation, ~2.5s — tunable via the
+single `--intro-duration-ms` custom property on `#intro-overlay`, which both the CSS
+animation and the JS auto-dismiss timer read, so there's exactly one place to change it —
+gated on `sessionStorage` so it doesn't replay on every page within a session) plays over
+the hero before resolving. It must never delay or block the hero content underneath from
+rendering — the hero renders and starts its own fade-in immediately regardless of the
+overlay; the overlay is purely an additive layer on top of it. Skippable on click, scroll,
+or keypress. Entirely skipped (not just shortened) under `prefers-reduced-motion`.
+
+**Scroll-linked vessel.** A flat gold geometric vessel silhouette (`vessel-silhouette.svg`,
+not `vessel.jpg`) sits behind the About + carousel region — not the hero, which keeps the
+animated mark as its one moving element — and drifts horizontally as the page scrolls,
+reversing on scroll-up for free because it's scroll-*linked* (`animation-timeline:
+view()`, `@supports`-gated) rather than scroll-triggered. Browsers without that feature get
+a `CSS.supports`-feature-detected (never UA-sniffed) rAF-throttled, transform-only scroll
+listener producing the same effect. Static under `prefers-reduced-motion`. Its opacity must
+be verified, not assumed, against AA contrast for whatever body copy it can sit behind —
+see the code comment in `index.astro` for the actual computed numbers. The wrapping
+container needs `overflow: hidden` so the animation's horizontal travel can never produce a
+page-level scrollbar, checked at narrow mobile widths specifically.
 
 **About content**, below the hero, continuous prose rather than chopped into cards — see the
 copy in the repo (`src/pages/index.astro`) for the exact wording, which should be treated as
@@ -202,6 +216,10 @@ Supplied in `/brand`:
 - `vessel.jpg` — the first real photograph supplied for the site, used as the first slide
   of the homepage carousel. More photography will follow; until it does, the remaining
   carousel slides are clearly-marked placeholders (see §3).
+- `vessel-silhouette.svg` — a flat, geometric container-vessel silhouette in gold,
+  drawn to sit with the mast mark's visual language rather than as a detailed
+  illustration. Used as the scroll-linked background behind the About/carousel region
+  (see §3). Also copied to `public/` so it's servable by URL — keep both in sync.
 
 **The "BSGT" wordmark is live HTML text, not an image.** Set it in the heading serif
 alongside the mark. This keeps it sharp at all sizes, selectable, readable by screen
@@ -269,9 +287,11 @@ centred everything is the association-website default. Structural devices (rules
 should encode real information: a gold hairline separating article metadata from body earns
 its place; decorative dividers do not.
 
-Motion: one deliberate moment at most — **except the homepage hero**, which is a scoped,
-intentional exception (ambient mark animation, intro sequence, staggered content reveal; see
-§3). Everywhere else on the site, no fade-and-slide on every section.
+Motion: one deliberate moment at most — **except the homepage**, which carries two scoped,
+intentional exceptions: the hero (ambient mark animation, intro sequence, staggered content
+reveal) and the scroll-linked vessel behind the About/carousel region below it — deliberately
+never both moving in the same view at once (see §3). Everywhere else on the site, no
+fade-and-slide on every section.
 
 ### Quality floor
 
