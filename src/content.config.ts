@@ -44,4 +44,17 @@ const team = defineCollection({
     }),
 });
 
-export const collections = { articles, events, team };
+const slides = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/slides' }),
+  schema: ({ image }) =>
+    z.object({
+      // Doubles as alt text when `image` is set, or as the visible message
+      // on a placeholder slide when it isn't.
+      caption: z.string(),
+      image: image().optional(),
+      order: z.number(),
+      draft: z.boolean().default(true),
+    }),
+});
+
+export const collections = { articles, events, team, slides };

@@ -1,36 +1,41 @@
 ---
+import { getCollection } from 'astro:content';
 import { Image } from 'astro:assets';
-import vessel from '../../brand/vessel.jpg';
 
-const placeholders = [
-  'Placeholder — dock and terminal operations photography coming soon.',
-  'Placeholder — BSGT events and workshops photography coming soon.',
-  'Placeholder — industry guest speakers photography coming soon.',
-];
+const slides = (
+  await getCollection('slides', ({ data }) => import.meta.env.DEV || data.draft === false)
+).sort((a, b) => a.data.order - b.data.order);
 ---
 
 <section class="carousel-section" aria-labelledby="carousel-heading">
   <div class="wrap">
     <h2 id="carousel-heading">BSGT in pictures</h2>
-    <div
-      class="carousel"
-      tabindex="0"
-      role="region"
-      aria-label="Photo carousel — use the left and right arrow keys to move between slides"
-    >
-      <ul class="track">
-        <li class="slide">
-          <Image src={vessel} alt="A container vessel at sea" width={1080} height={705} loading="lazy" />
-        </li>
-        {
-          placeholders.map((caption) => (
-            <li class="slide placeholder-slide">
-              <p>{caption}</p>
-            </li>
-          ))
-        }
-      </ul>
-    </div>
+    {
+      slides.length === 0 ? (
+        <p class="empty">Photos are on the way — check back soon.</p>
+      ) : (
+        <div
+          class="carousel"
+          tabindex="0"
+          role="region"
+          aria-label="Photo carousel — use the left and right arrow keys to move between slides"
+        >
+          <ul class="track">
+            {slides.map((entry) =>
+              entry.data.image ? (
+                <li class="slide">
+                  <Image src={entry.data.image} alt={entry.data.caption} loading="lazy" />
+                </li>
+              ) : (
+                <li class="slide placeholder-slide">
+                  <p>{entry.data.caption}</p>
+                </li>
+              ),
+            )}
+          </ul>
+        </div>
+      )
+    }
   </div>
 </section>
 
@@ -55,6 +60,12 @@ const placeholders = [
   .carousel-section h2 {
     max-width: var(--measure);
     margin-bottom: 1.5rem;
+  }
+
+  .empty {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    color: var(--color-slate);
   }
 
   .carousel {

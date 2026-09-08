@@ -94,8 +94,11 @@ copy in the repo (`src/pages/index.astro`) for the exact wording, which should b
 fixed unless BSGT itself asks for a copy change; don't silently rewrite it.
 
 **Image carousel.** A CSS scroll-snap carousel (no library), swipeable and keyboard-arrow
-navigable, that must not trap focus. One real photo exists (`brand/vessel.jpg`); the rest
-are placeholder slides, clearly marked, until real photography is supplied.
+navigable, that must not trap focus. Slides are a content collection (§4) with the same
+`draft` gate as articles/events/team — one real slide exists (`brand/vessel.jpg`); the rest
+are placeholder slides, clearly marked, `draft: true` until real photography is supplied.
+Whatever that leaves in production — one slide, several, or none — is the honest state; the
+carousel handles it gracefully rather than padding itself out with placeholders.
 
 **Recruiting block**, at the end of the page: a quiet, large statement ("Think beyond the
 vessel.") set back against the navy — deliberately lower-contrast than the foreground, but
@@ -164,10 +167,21 @@ order: number
 draft: boolean            # default true
 ```
 
-All three collections carry `draft`, same treatment: placeholder entries are seeded
-`draft: true` and excluded from production builds by default. A placeholder person or event
-leaking to production is worse than a placeholder article — don't skip this on Event or Team
-just because it's more work.
+**Slide** (homepage image carousel, §3)
+```yaml
+caption: string           # alt text if `image` is set; the visible message on a placeholder slide if not
+image: image?
+order: number
+draft: boolean            # default true
+```
+
+All four collections carry `draft`, same treatment: placeholder entries are seeded
+`draft: true` and excluded from production builds by default. A placeholder person, event,
+or carousel slide leaking to production is worse than a placeholder article — don't skip
+this on Event, Team, or Slide just because it's more work. If filtering placeholder slides
+down to one real photo (or zero) is the honest state of the carousel in production, that's
+correct — the carousel must handle a single slide or no slides gracefully rather than
+padding itself out with placeholders to look fuller than it is.
 
 ---
 

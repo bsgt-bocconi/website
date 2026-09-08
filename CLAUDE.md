@@ -74,14 +74,21 @@ Doesn't apply to "BSGT" itself, which is used freely in both contexts.
   Upcoming/past is derived from `date`, never a manual flag.
 - **Team member**: name, role, programme?, photo?, linkedin?, order,
   draft (default true).
+- **Slide** (homepage carousel, `src/content/slides/`): caption (doubles as
+  alt text when `image` is set, or the visible placeholder message when it
+  isn't), image?, order, draft (default true).
 
-All three collections have `draft`, same treatment: every page/query that
+All four collections have `draft`, same treatment: every page/query that
 reads a collection must filter `import.meta.env.DEV || data.draft === false`
-(see `src/pages/index.astro`, `articles/*`, `team.astro`, `events.astro`
-for the pattern). A placeholder person or event leaking to production is
-worse than a placeholder article — don't add a new placeholder entry to
-any of these three collections without `draft: true`, and don't add a new
-page/query against them without the same filter.
+(see `src/pages/index.astro`, `articles/*`, `team.astro`, `events.astro`,
+`Carousel.astro` for the pattern). A placeholder person, event, or carousel
+slide leaking to production is worse than a placeholder article — don't add
+a new placeholder entry to any of these four collections without
+`draft: true`, and don't add a new page/query against them without the same
+filter. If filtering drops the carousel to one slide or zero, that's the
+correct, honest state — `Carousel.astro` already handles both; don't "fix"
+it by making placeholders un-draftable again to keep the carousel looking
+full.
 
 ## Brand tokens
 
@@ -141,11 +148,9 @@ real content (real articles, real committee roster with recorded consent,
 real events). A Pages preview URL existing is fine pre-launch; a live
 custom domain is not.
 
-**Known gap, flagged not fixed:** the homepage carousel's placeholder slides
-(`src/components/Carousel.astro`) are hardcoded in the component, not a
-content collection entry, so they have **no `draft` gate** — they render in
-production builds same as dev. They're clearly labeled as placeholders in
-their own text, but unlike articles/events/team, there's no mechanism to
-hide them automatically. Swap them for real photography by editing the
-component directly when it's supplied; if a "keep placeholders out of prod"
-mechanism is wanted here too, that's an open ask, not something built.
+The homepage carousel's slides are a content collection too (`src/content/slides/`),
+same `draft` treatment as the other three — placeholder slides don't leak to
+production. As of this writing that leaves exactly one real slide
+(`vessel.jpg`) in a production build; the carousel is built to handle one
+slide or zero gracefully, not just several, so don't treat a sparse carousel
+as a bug.
