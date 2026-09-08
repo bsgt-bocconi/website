@@ -1,0 +1,29 @@
+---
+interface Props {
+  size?: number;
+  class?: string;
+}
+
+const { size = 28, class: className } = Astro.props;
+---
+
+<svg
+  viewBox="0 0 120 120"
+  width={size}
+  height={size}
+  role="img"
+  aria-label="BSGT mark"
+  class={className}
+>
+  <g fill="currentColor">
+    <path
+      d="M60 13 C60.7 34 61.1 48 61.1 58 C61.1 74 60.7 92 60 107 C59.3 92 58.9 74 58.9 58 C58.9 48 59.3 34 60 13 Z"
+    ></path>
+    <path
+      d="M37 41.8 C47 45.6 53.5 46.4 60 46.5 C66.5 46.4 73 45.6 83 41.8 C73 46.9 66.5 47.7 60 47.8 C53.5 47.7 47 46.9 37 41.8 Z"
+    ></path>
+    <path
+      d="M31 55.0 C44.5 62.2 52.5 63.3 60 63.4 C67.5 63.3 75.5 62.2 89 55.0 C75.5 63.9 67.5 65.0 60 65.1 C52.5 65.0 44.5 63.9 31 55.0 Z"
+    ></path>
+  </g>
+</svg>

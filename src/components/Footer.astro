@@ -1,0 +1,113 @@
+---
+import Mark from './Mark.astro';
+
+const year = new Date().getFullYear();
+
+const nav = [
+  { href: '/about', label: 'About' },
+  { href: '/team', label: 'Team' },
+  { href: '/articles', label: 'Articles' },
+  { href: '/events', label: 'Events' },
+  { href: '/privacy', label: 'Privacy' },
+];
+---
+
+<footer class="site-footer on-dark">
+  <div class="wrap top">
+    <div class="about">
+      <a href="/" class="brand" aria-label="BSGT — home">
+        <Mark size={22} />
+        <span class="wordmark">BSGT</span>
+      </a>
+      <p>Bocconi Shipping and Global Trade Student Association</p>
+    </div>
+    <nav aria-label="Footer">
+      <ul>
+        {
+          nav.map((item) => (
+            <li>
+              <a href={item.href}>{item.label}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+  <div class="wrap">
+    <p class="legal">© {year} BSGT, Università Bocconi student association.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background: var(--color-navy-deep);
+    color: var(--color-paper);
+    margin-top: 4rem;
+    padding-block: 2.5rem 1.5rem;
+  }
+
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem 3rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .about {
+    max-width: 28rem;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--color-gold);
+  }
+
+  .wordmark {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    color: var(--color-paper);
+  }
+
+  .about p {
+    margin-top: 0.75rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-paper);
+    opacity: 0.75;
+  }
+
+  nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  nav a {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    text-decoration: none;
+    color: var(--color-paper);
+  }
+
+  nav a:hover {
+    color: var(--color-gold);
+  }
+
+  .legal {
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    color: var(--color-paper);
+    opacity: 0.6;
+    border-top: 1px solid rgba(242, 244, 246, 0.15);
+    padding-top: 1.25rem;
+  }
+</style>

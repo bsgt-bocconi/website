@@ -1,16 +1,53 @@
 ---
+import BaseLayout from '../layouts/BaseLayout.astro';
 
+/**
+ * Placeholder pending the real home page (spec §3): once /articles and
+ * /events have content, this should lead with the 3–4 most recent
+ * articles at full editorial weight, then the next upcoming event, then
+ * this short blurb. Left minimal until stage 3b/3c content exists.
+ */
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout
+  title="BSGT — Bocconi Shipping and Global Trade Student Association"
+  description="BSGT is Bocconi University's student association for shipping, maritime economics, and global trade — publishing student research, hosting industry guest lectures and workshops, and connecting Bocconi's next generation of trade professionals."
+>
+  <section class="wrap intro">
+    <h1>Bocconi Shipping and Global Trade</h1>
+    <p class="lede">
+      BSGT is a recognised student association at Università Bocconi focused on shipping,
+      maritime economics, and global trade — interdisciplinary by design, drawing students from
+      economics, management, finance, international relations, operations, law, and
+      sustainability.
+    </p>
+    <p><a href="/about">Learn more about BSGT</a></p>
+  </section>
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-block: 3.5rem;
+    max-width: 42rem;
+  }
+
+  .lede {
+    margin-top: 1.25rem;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink);
+  }
+
+  .intro p + p {
+    margin-top: 1.5rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+  }
+
+  .intro a {
+    color: var(--color-navy-deep);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+</style>

@@ -14,7 +14,13 @@ that spec when something here is unclear or missing.
 - **Domain**: `bocconishippingandglobaltrade.com`, non-`www` canonical.
 - **Analytics**: Cloudflare Web Analytics only.
 - **Fonts**: Newsreader (headlines/body) + IBM Plex Sans (nav/meta), both
-  self-hosted in-repo. Never load from Google Fonts CDN.
+  self-hosted in-repo. Never load from Google Fonts CDN. Variable-weight
+  woff2 files (latin + latin-ext only, normal style, weight-axis only —
+  no opsz/italic) live in `public/fonts/{newsreader,ibm-plex-sans}/`,
+  loaded via `src/styles/fonts.css`. They were extracted once from the
+  `@fontsource-variable/*` npm packages; those packages are **not** a
+  runtime dependency — don't reinstall them, just add more subset/weight
+  files the same way if a future need arises.
 - **Forms**: none in v1. Recruiting CTA links out instead.
 
 ## Hard constraints (do not introduce without an explicit decision)
