@@ -1,0 +1,141 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TagList from '../../components/TagList.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { formatAuthors, formatDate } from '../../lib/format';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles', ({ data }) => import.meta.env.DEV || data.draft === false);
+  return articles.map((entry) => ({
+    params: { slug: entry.data.slug },
+    props: { entry },
+  }));
+}
+
+interface Props {
+  entry: CollectionEntry<'articles'>;
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+
+const allArticles = await getCollection('articles', ({ data }) => import.meta.env.DEV || data.draft === false);
+const related = allArticles
+  .filter((a) => a.id !== entry.id && a.data.tags.some((t) => entry.data.tags.includes(t)))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+  .slice(0, 3);
+
+const canonicalPath = `/articles/${entry.data.slug}`;
+const authorNames = Array.isArray(entry.data.author) ? entry.data.author : [entry.data.author];
+
+const articleJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: entry.data.title,
+  description: entry.data.summary,
+  datePublished: entry.data.date.toISOString(),
+  author: authorNames.map((name) => ({ '@type': 'Person', name })),
+  publisher: {
+    '@type': 'Organization',
+    name: 'Bocconi Shipping and Global Trade Student Association',
+    logo: {
+      '@type': 'ImageObject',
+      url: new URL('/favicon.svg', Astro.site).href,
+    },
+  },
+  mainEntityOfPage: new URL(canonicalPath, Astro.site).href,
+};
+---
+
+<BaseLayout title={`${entry.data.title} — BSGT`} description={entry.data.summary} ogType="article">
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(articleJsonLd)} />
+  </Fragment>
+
+  <article class="wrap article">
+    <header class="article-header">
+      {entry.data.tags.length > 0 && <TagList tags={entry.data.tags} />}
+      <h1>{entry.data.title}</h1>
+      <p class="standfirst">{entry.data.summary}</p>
+      <p class="byline">
+        <span>By {formatAuthors(entry.data.author)}</span>
+        <time datetime={entry.data.date.toISOString()}>{formatDate(entry.data.date)}</time>
+      </p>
+    </header>
+
+    <div class="prose article-body">
+      <Content />
+    </div>
+
+    {
+      related.length > 0 && (
+        <aside class="related">
+          <h2>Related articles</h2>
+          <ul>
+            {related.map((r) => (
+              <li>
+                <ArticleCard entry={r} headingLevel="h3" />
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
+  </article>
+</BaseLayout>
+
+<style>
+  .article {
+    padding-block: 3rem 4rem;
+  }
+
+  .article-header {
+    max-width: var(--measure);
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 2px solid var(--color-gold);
+  }
+
+  .article-header h1 {
+    margin-top: 1rem;
+  }
+
+  .standfirst {
+    margin-top: 1rem;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    color: var(--color-ink);
+  }
+
+  .byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.875rem;
+    margin-top: 1.25rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-slate);
+  }
+
+  .related {
+    max-width: 48rem;
+    margin-top: 4rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-slate) 25%, transparent);
+  }
+
+  .related h2 {
+    font-size: var(--text-xl);
+  }
+
+  .related ul {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

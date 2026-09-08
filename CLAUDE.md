@@ -10,6 +10,10 @@ that spec when something here is unclear or missing.
   client-side rendering for content. **Do not upgrade to Astro 7.x on this
   machine** — see "Astro version constraint" below before touching this.
 - **Content collections**: Markdown files in-repo, typed schemas. No CMS.
+  If a collection directory was empty when `astro dev` started, adding the
+  first `.md` file to it while the server is still running doesn't always
+  get picked up — restart `astro dev` if a collection that should now have
+  entries still 404s.
 - **Hosting**: Cloudflare Pages, auto-deploy from `main`.
 - **Domain**: `bocconishippingandglobaltrade.com`, non-`www` canonical.
 - **Analytics**: Cloudflare Web Analytics only.

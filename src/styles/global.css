@@ -102,8 +102,65 @@ a {
 }
 
 .prose a {
+  color: var(--color-navy-deep);
   text-decoration-thickness: 1px;
   text-underline-offset: 0.15em;
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  margin-top: 2em;
+  line-height: var(--leading-snug);
+}
+
+.prose h2 {
+  font-size: 1.5em;
+}
+
+.prose h3 {
+  font-size: 1.25em;
+}
+
+.prose ul,
+.prose ol {
+  margin: 1.25em 0 0;
+  padding-left: 1.25em;
+}
+
+.prose li + li {
+  margin-top: 0.5em;
+}
+
+.prose blockquote {
+  margin: 1.5em 0 0;
+  padding-left: 1.25em;
+  border-left: 2px solid var(--color-gold);
+  font-style: italic;
+  color: var(--color-slate);
+}
+
+.prose hr {
+  margin: 2.5em 0 0;
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--color-slate) 35%, transparent);
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose code {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  background: var(--color-navy-mid);
+  color: var(--color-paper);
+  padding: 0.125em 0.375em;
+  border-radius: 3px;
+}
+
+.prose img {
+  border-radius: 2px;
 }
 
 /* Focus states — visible everywhere, colour adapts to ground via --focus-ring */
