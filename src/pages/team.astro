@@ -1,0 +1,66 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TeamMemberCard from '../components/TeamMemberCard.astro';
+
+const members = (await getCollection('team')).sort((a, b) => a.data.order - b.data.order);
+---
+
+<BaseLayout
+  title="Team — BSGT"
+  description="The committee of the Bocconi Shipping and Global Trade Student Association."
+>
+  <div class="wrap team-page">
+    <header class="page-header">
+      <h1>The Team</h1>
+      <p class="dek">The committee behind BSGT's lectures, workshops, articles, and events.</p>
+    </header>
+
+    {
+      members.length === 0 ? (
+        <p class="empty">The committee roster hasn't been published yet.</p>
+      ) : (
+        <ul class="team-grid">
+          {members.map((member) => (
+            <li>
+              <TeamMemberCard member={member} />
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .team-page {
+    padding-block: 3rem 4rem;
+  }
+
+  .page-header {
+    max-width: var(--measure);
+    margin-bottom: 2.5rem;
+  }
+
+  .dek {
+    margin-top: 0.75rem;
+    font-family: var(--font-sans);
+    color: var(--color-slate);
+  }
+
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 2rem 2.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-width: 60rem;
+  }
+
+  .empty {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    color: var(--color-slate);
+  }
+</style>

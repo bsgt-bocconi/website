@@ -1,0 +1,101 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EventItem from '../components/EventItem.astro';
+
+const events = await getCollection('events');
+
+const todayStart = new Date();
+todayStart.setHours(0, 0, 0, 0);
+
+const upcoming = events
+  .filter((e) => e.data.date.valueOf() >= todayStart.valueOf())
+  .sort((a, b) => a.data.date.valueOf() - b.data.date.valueOf());
+
+const past = events
+  .filter((e) => e.data.date.valueOf() < todayStart.valueOf())
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<BaseLayout
+  title="Events — BSGT"
+  description="Upcoming and past guest lectures, workshops, and socials from BSGT."
+>
+  <div class="wrap events-page">
+    <header class="page-header">
+      <h1>Events</h1>
+    </header>
+
+    <section class="event-section">
+      <h2>Upcoming</h2>
+      {
+        upcoming.length === 0 ? (
+          <p class="empty">No upcoming events right now — check back soon.</p>
+        ) : (
+          <ul class="event-list">
+            {upcoming.map((entry) => (
+              <li>
+                <EventItem entry={entry} />
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    {
+      past.length > 0 && (
+        <section class="event-section">
+          <h2>Past</h2>
+          <ul class="event-list">
+            {past.map((entry) => (
+              <li>
+                <EventItem entry={entry} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .events-page {
+    padding-block: 3rem 4rem;
+  }
+
+  .page-header {
+    max-width: var(--measure);
+  }
+
+  .event-section {
+    max-width: var(--measure);
+    margin-top: 3rem;
+  }
+
+  .event-section h2 {
+    font-size: var(--text-2xl);
+  }
+
+  .event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .event-list li + li {
+    padding-top: 2rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-slate) 25%, transparent);
+  }
+
+  .empty {
+    margin-top: 1.5rem;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    color: var(--color-slate);
+  }
+</style>

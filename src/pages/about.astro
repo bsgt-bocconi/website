@@ -1,0 +1,122 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="About — BSGT"
+  description="Why the Bocconi Shipping and Global Trade Student Association exists, what makes it distinct, and what it actually does."
+>
+  <article class="wrap about">
+    <header class="page-header">
+      <h1>About BSGT</h1>
+    </header>
+
+    <div class="prose">
+      <p>
+        BSGT — the Bocconi Shipping and Global Trade Student Association — exists because
+        shipping and global trade sit at the centre of nearly everything else: energy, finance,
+        manufacturing, geopolitics, sustainability. Bocconi is built around business, economics,
+        and management, but until BSGT there was no association bringing students together
+        specifically around this subject. BSGT was founded to close that gap.
+      </p>
+      <p>
+        Bocconi already has associations for finance, consulting, and general international
+        affairs. BSGT is deliberately narrower and more technical: it exists for students who
+        want to go deep on one industry — how ships are financed, chartered, insured, and
+        regulated, and how trade actually moves physically rather than just on a balance sheet —
+        rather than treat shipping as a footnote inside a broader finance or strategy curriculum.
+        That focus is also what makes the association interdisciplinary in practice: understanding
+        global trade properly pulls in economics, management, finance, international relations,
+        operations, law, and sustainability all at once, and BSGT's members come from all of those
+        backgrounds.
+      </p>
+
+      <h2>What we do</h2>
+      <p>BSGT's work falls into four connected strands.</p>
+      <p>
+        <strong>Industry exposure and guest lectures.</strong> We bring professionals from shipping
+        lines, brokers, freight forwarders, ports, and trade finance into direct contact with
+        students, so the theory taught in class meets how the industry actually operates.
+      </p>
+      <p>
+        <strong>Knowledge production.</strong> The <a href="/articles">articles</a> BSGT publishes
+        are the clearest evidence of this strand — student-written analysis of shipping and trade
+        topics, researched and edited to a standard we'd be comfortable putting in front of an
+        industry professional.
+      </p>
+      <p>
+        <strong>Practical workshops.</strong> Shorter, skills-focused sessions — chartering,
+        documentation, trade finance basics — aimed at giving members working knowledge, not just
+        familiarity.
+      </p>
+      <p>
+        <strong>Networking.</strong> Connecting members with each other and with the companies BSGT
+        works with, so the association is useful both academically and for the next step after
+        Bocconi.
+      </p>
+    </div>
+
+    <section class="recruiting">
+      <h2>Get involved</h2>
+      <p>
+        BSGT is looking for students from any programme who are genuinely interested in shipping,
+        trade, or maritime economics — you don't need prior experience in the industry, just
+        curiosity about it. Membership involves attending events and workshops, and for those who
+        want it, contributing to the association's articles or helping run an event.
+      </p>
+      <p>
+        Recruitment runs at the start of each academic term. If you're interested, get in touch —
+        we'll point you to whatever the current process is.
+      </p>
+      <p class="cta">
+        <a href="mailto:as.bsgt@studbocconi.it">Get in touch about joining BSGT</a>
+      </p>
+      <p class="placeholder-note">
+        Placeholder contact — replace with the live membership process or form link before launch.
+      </p>
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .about {
+    padding-block: 3rem 4rem;
+  }
+
+  .page-header {
+    max-width: var(--measure);
+    margin-bottom: 2rem;
+  }
+
+  .recruiting {
+    max-width: var(--measure);
+    margin-top: 3.5rem;
+    padding-top: 2.5rem;
+    border-top: 2px solid var(--color-gold);
+  }
+
+  .recruiting p {
+    margin-top: 1.25rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    color: var(--color-ink);
+  }
+
+  .recruiting p:first-of-type {
+    margin-top: 1rem;
+  }
+
+  .cta a {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    color: var(--color-navy-deep);
+  }
+
+  .placeholder-note {
+    margin-top: 0.5rem;
+    font-size: var(--text-xs);
+    font-style: italic;
+    color: var(--color-slate);
+  }
+</style>

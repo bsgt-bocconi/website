@@ -5,14 +5,16 @@ import { formatAuthors, formatDate } from '../lib/format';
 interface Props {
   entry: CollectionEntry<'articles'>;
   headingLevel?: 'h2' | 'h3';
+  /** "lead" is full editorial weight, for the homepage's leading articles. */
+  size?: 'default' | 'lead';
 }
 
-const { entry, headingLevel = 'h2' } = Astro.props;
+const { entry, headingLevel = 'h2', size = 'default' } = Astro.props;
 const Heading = headingLevel;
 const href = `/articles/${entry.data.slug}`;
 ---
 
-<article class="card">
+<article class={`card ${size === 'lead' ? 'lead' : ''}`}>
   <Heading class="title"><a href={href}>{entry.data.title}</a></Heading>
   <p class="meta">
     <span class="byline">{formatAuthors(entry.data.author)}</span>
@@ -28,6 +30,15 @@ const href = `/articles/${entry.data.slug}`;
 
   .title {
     font-family: var(--font-serif);
+    /* Stepped down from the page h1 (--text-3xl) so entry titles read as
+       list items, not competing headlines. */
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
+  }
+
+  .lead .title {
+    /* Full editorial weight, for the homepage's leading articles. */
+    font-size: var(--text-2xl);
   }
 
   .title a {

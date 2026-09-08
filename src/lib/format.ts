@@ -15,6 +15,10 @@ export function formatDate(date: Date): string {
   return dateFormatter.format(date);
 }
 
+export function capitalize(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 export function slugifyTag(tag: string): string {
   return tag
     .toLowerCase()
