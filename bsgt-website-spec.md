@@ -171,12 +171,28 @@ showing above — not a pinned/scroll-jacked sequence, and not a static three-co
 either. Per division, in order: number (01/02/03, gold, small, letter-spaced), name
 (serif, large), a one-line tagline (gold), a description (paper at ~0.78 opacity, its own
 `60ch` measure cap independent of the card's width — see below), and a "Visit division"
-link to that division's page (gold, underlined). Each card is a **solid** `navy-mid`
-panel — required for the stacking illusion, since a transparent card would let the one
-sliding up behind it show straight through instead of being covered — with a 1px gold
-border at 0.5 opacity (held to the 3:1 WCAG non-text guideline since it's a functional
-divider between cards, not decoration), 8px radius, generous padding, and a soft upward
-shadow so the stacking edge itself reads.
+link to that division's page (gold, underlined). Each card's background is a real
+photograph (one per division, from `src/data/divisions.ts` — image and copy stay paired
+in the same data file), not a flat colour, but **must still read as fully solid** — the
+stacking illusion requires it, since a see-through card would let the one sliding up
+behind it show straight through instead of being covered. Two layers sit over the photo:
+a flat `navy-deep` veil at 66% opacity across the whole image (photography at full
+brightness is too bright for this palette on its own), then a horizontal gradient on top
+— `navy-deep` at ~82% opacity at the card's left edge, fading to fully transparent by
+~78% across its width — so text sits on near-solid navy while the right portion of the
+card stays visibly photographic. `.division-card` keeps its solid `navy-mid` background
+underneath all of this as a fallback: if a photo fails to load, the card stays opaque, it
+never goes transparent. 1px gold border at 0.5 opacity (held to the 3:1 WCAG non-text
+guideline since it's a functional divider between cards, not decoration), 8px radius,
+generous padding, and a soft upward shadow so the stacking edge itself reads.
+
+Contrast for the tagline and description was checked against the actual photos, not the
+flat colours alone — the brightest pixel within the region text can appear over was
+located in each image, the veil and gradient composited over it exactly as CSS renders
+them, and contrast computed against that worst case. All three passed with real margin
+(roughly 8:1–10:1 across both text tiers on all three photos — see CLAUDE.md for the
+per-division figures), so the veil/gradient opacities didn't need adjusting from the
+supplied values.
 
 Cards are **full width**, spanning the whole `.wrap-wide` container as page-width panels
 — not the ~520px-capped block an earlier version used. The description keeps its own

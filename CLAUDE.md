@@ -135,22 +135,68 @@ script this change removed, so it wasn't added; browsers generally scroll a focu
 element into view when it isn't, which for this pattern tends to resolve the overlap
 naturally as the scroll position that follows also changes which card is on top.
 
-Cards need a **solid** `navy-mid` (`#111834`) background — this is what makes the
-stacking illusion read at all; a transparent card would let the one sliding up behind it
-show straight through instead of being covered. 1px gold border at 0.5 opacity, 8px
-radius, a soft upward `box-shadow` so the stacking edge itself reads as an edge. Content
-per card, unchanged from the previous version: a `01`/`02`/`03` number (gold, small,
-letter-spaced), the division name (serif), a gold tagline, a paper-at-0.78-opacity
-description, a gold underlined "Visit division" link. Section heading is paper at 0.7
-opacity, sitting directly on the section's own `navy-deep` background (not blended with
-any ship graphic — there's no ship behind this section any more, see "Scroll-linked
-vessel" below). Contrast re-verified against what's actually behind each element now
-(cards are opaque `navy-mid`, not the old semi-transparent panels over a ship-blended
-background) — gold text vs `navy-mid`: ~11.1:1; paper description at 0.78 vs `navy-mid`:
-~9.9:1; gold border at 0.5 (held to the 3:1 non-text guideline, since it's a functional
-divider between cards, not decoration) vs `navy-mid`: ~3.7:1; heading vs `navy-deep`:
-~8.8:1. All comfortably past AA, with more margin than the previous ship-blended-worst-
-case version had, since that worst case no longer applies here.
+Cards need a **solid** background — this is what makes the stacking illusion read at all;
+a transparent card would let the one sliding up behind it show straight through instead
+of being covered. 1px gold border at 0.5 opacity, 8px radius, a soft upward `box-shadow`
+so the stacking edge itself reads as an edge. Content per card: a `01`/`02`/`03` number
+(gold, small, letter-spaced), the division name (serif), a gold tagline, a
+paper-at-0.78-opacity description (capped `60ch`, independent of the card's own width —
+see "Layout width" below), a gold underlined "Visit division" link. Section heading is
+paper at 0.7 opacity, sitting directly on the section's own `navy-deep` background (not
+blended with any ship graphic — there's no ship behind this section, see "Scroll-linked
+vessel" below).
+
+**Each card's background is now a real photograph**, not a flat colour, per real photos
+supplied for this — `src/assets/divisions/{events,research,marketing}.jpg`, referenced
+from `src/data/divisions.ts` (each division carries a `photo: ImageMetadata` + a real,
+non-decorative `photoAlt`) so image and copy stay paired in one place, not wired
+separately in the template. Two layers sit on top of the photo, in this DOM/paint order:
+`.division-veil` (`.division-photo`'s first child) — a flat `navy-deep` wash at 66%
+opacity across the whole photo, needed because real photography at full brightness is far
+too bright for this palette on its own — then `.division-gradient` (painted after it, so
+on top) — a horizontal gradient, `navy-deep` at 82% opacity at the card's left edge fading
+to fully transparent by 78% across its width. The gradient is what actually makes the
+text legible without flattening the photo into muddy near-black everywhere: text sits
+over near-solid navy on the left (where `.division-content`'s padding puts it), while the
+right two-fifths of the card stays visibly photographic. `.division-card` itself still
+carries `background: var(--color-navy-mid)` underneath all of this, as the fallback if
+a photo fails to load or is slow — the photo/veil/gradient stack paints *over* that
+fallback, it doesn't replace it, so a failed image still leaves an opaque navy card, never
+a see-through one. `.division-card` also picked up `overflow: hidden` (to clip the photo
+to its `border-radius`) — safe specifically because it's on the sticky element's own box,
+not an ancestor of it; overflow on a sticky element itself doesn't touch its own
+positioning, only overflow on something *containing* it does (see the vessel section
+below for the bug that distinction avoided once already).
+
+Photos are `1536×1024` JPEGs (3:2), served through Astro's `<Image>` (explicit
+`width={1536} height={1024}`, `astro:assets` re-encodes to WebP automatically — 60KB /
+84KB / 108KB for events/research/marketing respectively, ~252KB combined, a real but
+modest addition to what was previously an almost entirely text page). `.division-photo
+img` is `object-fit: cover; object-position: center`, so at the cards' actual rendered
+box (1152×340 at this page's container width) it's width-constrained: the full photo
+width shows, cropped to a centred horizontal band vertically. All three images load
+`loading="lazy"` — including the first card, despite an initial instruction to make it
+`eager` "if it's near the fold": it isn't. The divisions section only begins after the
+full hero + About passage (~1870px down the page at common viewport sizes), nowhere near
+the fold at typical viewport heights, so eager-loading it would just cost initial-load
+bytes for an image nobody's scrolled to yet.
+
+**Contrast is checked against the actual rendered photo, not the flat colours underneath
+it** — computed by sampling the real image pixels (not guessed): for each photo, the
+brightest pixel within the region text can actually appear over (the visible cropped
+band, card-relative x 0–600px, covering both the tagline and the full wrapped
+`.description`) was located programmatically, then the veil and gradient were composited
+over it exactly as CSS does (`navy-deep` at 66% over the photo pixel, then `navy-deep` at
+the gradient's opacity *at that specific x position* over that result), and contrast
+computed against that worst-case composite. Results: Events — tagline (gold, full
+opacity) ~8.33:1, description (paper @0.78) ~7.86:1. Research — tagline ~9.35:1,
+description ~8.66:1. Marketing — tagline ~10.29:1, description ~9.36:1. All comfortably
+clear the 4.5:1 AA floor with real margin; the veil/gradient opacities as specified didn't
+need raising. Re-run this measurement (script pattern: crop the visible cover-cropped
+band, find max relative-luminance pixel, composite the CSS layers over it in DOM order,
+recompute contrast) if the photos are ever swapped for different ones — a brighter
+replacement photo could genuinely need a higher veil opacity, and eyeballing a screenshot
+isn't precise enough to catch that reliably.
 
 *Division pages* (`src/pages/divisions/[slug].astro`, one dynamic route generated from
 `divisions` via `getStaticPaths`, not three separate files): header (name + tagline),

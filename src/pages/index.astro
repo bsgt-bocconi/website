@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Mark from '../components/Mark.astro';
 import Carousel from '../components/Carousel.astro';
@@ -118,13 +119,26 @@ import { divisions } from '../data/divisions';
         {
           divisions.map((division, i) => (
             <div class="division-card" style={{ '--i': i }}>
-              <span class="block-number">{String(i + 1).padStart(2, '0')}</span>
-              <h3>{division.name}</h3>
-              <p class="tagline">{division.tagline}</p>
-              <p class="description">{division.description}</p>
-              <a class="visit-link" href={`/divisions/${division.slug}`}>
-                Visit division
-              </a>
+              <div class="division-photo">
+                <Image
+                  src={division.photo}
+                  alt={division.photoAlt}
+                  width={1536}
+                  height={1024}
+                  loading="lazy"
+                />
+                <div class="division-veil" aria-hidden="true" />
+                <div class="division-gradient" aria-hidden="true" />
+              </div>
+              <div class="division-content">
+                <span class="block-number">{String(i + 1).padStart(2, '0')}</span>
+                <h3>{division.name}</h3>
+                <p class="tagline">{division.tagline}</p>
+                <p class="description">{division.description}</p>
+                <a class="visit-link" href={`/divisions/${division.slug}`}>
+                  Visit division
+                </a>
+              </div>
             </div>
           ))
         }
@@ -773,16 +787,85 @@ import { divisions } from '../data/divisions';
        the tallest of the three at the widths this was verified at
        (800px and 1200px viewport heights); see CLAUDE.md for the figure. */
     min-height: var(--card-min-height);
-    padding: 2.5rem;
-    /* Solid, not transparent — this is what makes the stacking effect
-       read at all. A transparent card would let the one sliding up
-       behind it show straight through instead of being covered. */
+    /* Padding moved to .division-content below — the photo layer needs
+       to fill the card edge to edge, not sit inset inside the old
+       padding box. */
+    /* Solid, not transparent — this is the fallback if the photo
+       (below) fails to load or is slow: the card still reads as an
+       opaque navy panel, never see-through. The photo/veil/gradient
+       layers paint on top of this when they do load; they don't replace
+       it. This is what keeps the stacking effect intact regardless of
+       image load state — a transparent card would let the one sliding
+       up behind it show straight through instead of being covered. */
     background: var(--color-navy-mid);
     border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
     border-radius: 8px;
+    /* Clips the photo layer's corners to match border-radius, and clips
+       its edges to the card's own box. Safe on this element specifically
+       — .division-card is itself the position: sticky element here, and
+       overflow on a sticky element's OWN box doesn't affect its own
+       stickiness, only overflow on an ANCESTOR of a sticky element does
+       (see CLAUDE.md's "Scroll-linked vessel" section for the bug that
+       taught this). .divisions-stack, .wrap-wide, .divisions-section —
+       every ancestor of this card — still carries no overflow property,
+       and shouldn't. */
+    overflow: hidden;
     /* Soft upward shadow so the stacking edge reads as an edge, not just
        a flat colour change where one card's top overlaps the next. */
     box-shadow: 0 -16px 32px -16px rgb(0 0 0 / 0.5);
+  }
+
+  /* Fills the card behind the text — position: sticky still establishes
+     a valid containing block for an absolutely-positioned descendant, so
+     this doesn't need .division-card to also be position: relative. */
+  .division-photo {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .division-photo :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  /* Layer 1 of 2: a flat veil across the whole photo. Without this the
+     source photos (real photography, full brightness) are far too bright
+     for this palette — verified, not eyeballed, see the contrast numbers
+     in CLAUDE.md's "Divisions" section for exactly how much this + the
+     gradient below need to darken the brightest region of each photo to
+     keep the gold tagline and paper description at AA. */
+  .division-veil {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--color-navy-deep) 66%, transparent);
+  }
+
+  /* Layer 2 of 2: a horizontal gradient on top of the veil, not a
+     replacement for it — the two stack. Near-solid navy on the left,
+     where the text sits, fading to fully transparent on the right, where
+     the photo stays visibly photographic. This is the layer that makes
+     the treatment legible: skip it and the description text — which can
+     run long enough to reach past the card's left third — ends up over
+     whatever's brightest in the photo (a laptop screen, a sunset) with
+     only the flat 66% veil between it and full readability. */
+  .division-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-navy-deep) 82%, transparent) 0%,
+      transparent 78%
+    );
+  }
+
+  .division-content {
+    position: relative;
+    z-index: 1;
+    padding: 2.5rem;
   }
 
   .division-card:not(:last-child) {
