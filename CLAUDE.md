@@ -51,20 +51,47 @@ object with a `slug`, nothing about either the homepage layout or the dynamic ro
 assumes exactly three.
 
 *Homepage* (`index.astro`, between the About content and the carousel, still inside
-`.scroll-vessel-area`): three side-by-side blocks — **not** a pinned/scroll-jacked
-sequence, and don't build one — separated by thin vertical hairlines rather than cards,
-dropped entirely (not rotated to horizontal) when they stack to one column below 900px.
-Each block reveals once with a short fade + rise as it enters the viewport
-(`[data-reveal]`, `IntersectionObserver`, `.is-visible` class — a discrete one-shot
-trigger, deliberately not scroll-linked the way the ship is; unobserved after it fires
-so scrolling back up doesn't replay it) and ends with a "Visit division" link to its
-`/divisions/[slug]` page. Under `prefers-reduced-motion` the JS doesn't even run — the
-CSS media query alone shows the blocks, so nothing here depends on the script executing.
-This is a fourth interaction/motion-only script on this page (see the hard-constraints
-entry below). Gold is used **only** on the tagline (verified: ~12.5:1 on plain
-navy-deep, ~8.3:1 worst-case directly over the ship — the "Visit division" link is
-`paper` + underline, gold only on hover, matching the site's normal dark-ground link
-convention, specifically *not* gold at rest so the tagline stays the one gold element).
+`.scroll-vessel-area`): a **pinned, scroll-linked sequence** — `.divisions-section`
+grows to `height: 300vh` and each division's block takes over the sticky panel in
+turn as the reader scrolls, reversing on scroll up. Deliberately **is** now a
+pinned/scroll-jacked sequence — this reverses an earlier version of this section that
+was explicitly a static three-column grid; don't revert to that without a fresh
+instruction. Progress is derived from `.divisions-section`'s `getBoundingClientRect()`
+each frame and eased with the same damped-follow formula as the ship
+(`current += (target - current) * DAMPING`), with `DAMPING` imported from
+`src/lib/motion.ts` — a small shared module created specifically so the vessel's loop
+and this one can't drift to different values while staying two independent scripts.
+Per block: `d = progress - (i + 0.5) / n`, `opacity = smoothstep(1 - min(1, |d| /
+BAND))`, `translateY = d * -TRAVEL / BAND * 0.5`, with `BAND = 0.18` and
+`TRAVEL = 110` as named constants in the script. Only `transform`/`opacity` are
+animated per frame (plus `pointer-events: none` below 0.5 opacity so a faded block's
+link isn't mouse-clickable, and `z-index` so the absolutely-stacked blocks paint in
+the right order — a small, deliberate addition beyond transform/opacity, needed only
+because three blocks occupy the same visual space at once). A row of three thin
+horizontal rules beneath the blocks acts as a position indicator, opacity 0.2 rising to
+0.9 for the active block.
+
+Each block is an outlined panel (1px gold border at 0.42 opacity, 6px radius, ~520px
+max-width) containing, in order: a `01`/`02`/`03` number (gold, small, letter-spaced),
+the division name (serif), a gold tagline, a paper-at-0.78-opacity description, and a
+gold underlined "Visit division" link to its `/divisions/[slug]` page — gold is used
+more freely in this section than elsewhere on the page (tagline, number, and link all
+gold, not just the tagline), a deliberate change from that section's earlier styling.
+
+**Fallbacks, required not optional, and all three collapse to one state**: under
+`prefers-reduced-motion`, under a ~600px-or-shorter viewport ("pinning on a short
+screen traps the reader"), or with JS unavailable, the section is normal document flow
+— no `height: 300vh`, no sticky, no rAF loop — with all three blocks stacked, static,
+and fully visible in document order. The stylesheet's default `.division-block` opacity
+is always `1`; the script only adds the `.is-pinned` enhancement class when none of
+those three conditions hold, so there's one fallback CSS path, not three. All three
+blocks stay in the DOM and in the accessibility tree regardless of visual state — Tab
+reaches all three "Visit division" links always, and `focusin`/`focusout` listeners
+force a keyboard-focused block fully visible and frontmost (`.is-focused`) so focus is
+never trapped on a block that's currently faded out. An `IntersectionObserver` pauses
+this rAF loop while the section is off-screen, same pattern as the vessel's own pause —
+see the hard-constraints entry below for why this stays a second, independent loop
+rather than merging with the vessel's.
 
 *Division pages* (`src/pages/divisions/[slug].astro`, one dynamic route generated from
 `divisions` via `getStaticPaths`, not three separate files): header (name + tagline),
@@ -260,10 +287,11 @@ Doesn't apply to "BSGT" itself, which is used freely in both contexts.
   the once-per-session intro-animation `sessionStorage` check, the
   scroll-linked vessel's `requestAnimationFrame` motion loop (see
   "Scroll-linked vessel" below — this one runs the whole effect itself now,
-  it isn't a fallback for a CSS path anymore), and the divisions blocks'
-  one-shot `IntersectionObserver` reveal (see "Divisions" below — discrete,
-  fires once per block, not scroll-linked). Don't add a fifth without a
-  real reason — CSS/native-HTML solves almost everything else on this site.
+  it isn't a fallback for a CSS path anymore), and the divisions section's
+  own `requestAnimationFrame` pinned-sequence loop (see "Divisions" below —
+  a second, independent rAF loop, deliberately not merged with the vessel's).
+  Don't add a fifth without a real reason — CSS/native-HTML solves almost
+  everything else on this site.
 
 ## Content model (see spec §4 for exact field types)
 

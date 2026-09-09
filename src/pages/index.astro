@@ -106,22 +106,31 @@ import { divisions } from '../data/divisions';
     </section>
 
     <section class="divisions-section">
-      <div class="wrap-wide">
-        <h2>One vision, supported by three divisions</h2>
+      <div class="divisions-sticky">
+        <div class="wrap-wide">
+          <h2 class="divisions-heading">One vision, supported by three divisions</h2>
 
-        <div class="divisions-grid">
-          {
-            divisions.map((division) => (
-              <div class="division" data-reveal>
-                <h3>{division.name}</h3>
-                <p class="tagline">{division.tagline}</p>
-                <p class="description">{division.description}</p>
-                <p class="visit-link">
-                  <a href={`/divisions/${division.slug}`}>Visit division</a>
-                </p>
-              </div>
-            ))
-          }
+          <div class="divisions-stage">
+            {
+              divisions.map((division, i) => (
+                <div class="division-slot">
+                  <div class="division-block">
+                    <span class="block-number">{String(i + 1).padStart(2, '0')}</span>
+                    <h3>{division.name}</h3>
+                    <p class="tagline">{division.tagline}</p>
+                    <p class="description">{division.description}</p>
+                    <a class="visit-link" href={`/divisions/${division.slug}`}>
+                      Visit division
+                    </a>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+
+          <div class="divisions-indicator" aria-hidden="true">
+            {divisions.map(() => <span class="indicator-rule" />)}
+          </div>
         </div>
       </div>
     </section>
@@ -183,9 +192,8 @@ import { divisions } from '../data/divisions';
   // scroll-driven animation has no way to express that — it can only
   // map scroll position straight to animation progress. Tested, and
   // this is why it was rejected — don't "optimise" back to it.
+  import { DAMPING } from '../lib/motion';
 
-  // Tunable constants.
-  const DAMPING = 0.35;
   // Not currently used by the active progress formula below (see frame()) —
   // that formula maps the whole passage through the viewport directly, so
   // this doesn't govern it. Kept declared, not deleted, in case a future
@@ -276,25 +284,118 @@ import { divisions } from '../data/divisions';
 </script>
 
 <script>
-  // Divisions reveal: a one-time fade + rise per block as it enters the
-  // viewport — not scroll-linked (no per-frame work, no continuous
-  // tracking once triggered), and each block fires independently and
-  // only once. Under reduced motion this script does nothing at all;
-  // the CSS media query alone is what shows the blocks, so there's no
-  // dependency on this running for content to appear.
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const blocks = document.querySelectorAll<HTMLElement>('[data-reveal]');
+  // Divisions pinned sequence. Second rAF loop on this page (the vessel
+  // above is the first) — kept deliberately separate rather than merged
+  // into one shared loop. They're independent effects with independent
+  // visibility windows (the vessel spans About + divisions + carousel;
+  // this spans only the divisions section, which is itself now much
+  // taller than the vessel's other neighbours) and independent
+  // IntersectionObservers already gate each one to do nothing when its
+  // own element is off-screen. Merging them would mean coordinating an
+  // OR of two observer states just to run one loop that internally
+  // branches into two unrelated blocks of work — more coupling for a
+  // performance difference that doesn't exist: each frame's work here is
+  // a few multiplications and a handful of style writes, not something
+  // expensive enough for loop-consolidation to matter. DAMPING is shared
+  // via src/lib/motion.ts specifically so the two loops can't drift to
+  // different values even though they stay structurally independent.
+  import { DAMPING } from '../lib/motion';
+
+  // Named per the spec this was built from — the only two values this
+  // sequence's shape should need tuning.
+  const BAND = 0.18;
+  const TRAVEL = 110;
+
+  function smoothstep(t: number): number {
+    const x = Math.min(1, Math.max(0, t));
+    return x * x * (3 - 2 * x);
+  }
+
+  const section = document.querySelector<HTMLElement>('.divisions-section');
+  const blocks = document.querySelectorAll<HTMLElement>('.division-block');
+  const indicators = document.querySelectorAll<HTMLElement>('.indicator-rule');
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const shortViewport = window.matchMedia('(max-height: 600px)').matches;
+
+  // Blocks render visible, unpinned, in normal document flow by default
+  // (see the CSS below — .divisions-section has no special height or
+  // positioning unless .is-pinned is present, and .division-block starts
+  // at opacity: 1 in the stylesheet, never 0). That default state IS the
+  // fallback for no-JS, reduced motion, and a short viewport all at
+  // once — this class is only added when none of those apply, so there's
+  // one fallback path to reason about, not three separate ones.
+  if (section && blocks.length && !reduceMotion && !shortViewport) {
+    section.classList.add('is-pinned');
+
+    const n = blocks.length;
+    let current = 0;
+    let target = 0;
+    let rafId: number | null = null;
+
+    const frame = () => {
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const scrollableDistance = rect.height - viewportHeight;
+      target =
+        scrollableDistance > 0
+          ? Math.min(1, Math.max(0, -rect.top / scrollableDistance))
+          : 0;
+
+      current += (target - current) * DAMPING;
+
+      blocks.forEach((block, i) => {
+        const d = current - (i + 0.5) / n;
+        const opacity = smoothstep(1 - Math.min(1, Math.abs(d) / BAND));
+        const translateY = ((d * -TRAVEL) / BAND) * 0.5;
+
+        // Transform and opacity only — never anything layout-affecting.
+        block.style.opacity = String(opacity);
+        block.style.transform = `translateY(${translateY}px)`;
+        // Below 0.5 opacity a block is only faintly visible if at all;
+        // pointer-events: none stops its "Visit division" link from
+        // being mouse-clickable while it's essentially invisible. This
+        // only blocks pointer interaction — keyboard focus is untouched,
+        // so Tab still reaches every link regardless of opacity.
+        block.style.pointerEvents = opacity < 0.5 ? 'none' : '';
+        block.style.zIndex = String(Math.round(opacity * 10));
+
+        const indicator = indicators[i];
+        if (indicator) indicator.style.opacity = String(0.2 + opacity * 0.7);
+      });
+
+      rafId = requestAnimationFrame(frame);
+    };
+
+    const start = () => {
+      if (rafId === null) rafId = requestAnimationFrame(frame);
+    };
+    const stop = () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+    };
+
     const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
-        }
+      ([entry]) => {
+        if (entry.isIntersecting) start();
+        else stop();
       },
-      { threshold: 0.2 },
+      { threshold: 0 },
     );
-    blocks.forEach((block) => observer.observe(block));
+    observer.observe(section);
+
+    // A keyboard user tabbing into a faded-out block should actually be
+    // able to see what they've focused, not land on something invisible
+    // behind another block — force the focused block fully visible and
+    // frontmost for as long as it holds focus, regardless of scroll
+    // progress. All three blocks stay in the DOM and in tab order either
+    // way; this only affects how the currently-focused one looks.
+    blocks.forEach((block) => {
+      block.addEventListener('focusin', () => block.classList.add('is-focused'));
+      block.addEventListener('focusout', () => block.classList.remove('is-focused'));
+    });
   }
 </script>
 
@@ -623,43 +724,89 @@ import { divisions } from '../data/divisions';
     }
   }
 
-  /* Divisions — sits inside .scroll-vessel-area too (between About and the
-     carousel), so it needs the same position:relative; z-index:1 as
-     .about-content/.carousel-section to stay above the ship. Verified,
-     not assumed: gold tagline text directly over the densest part of the
-     ship graphic computes to ~8.3:1; paper description/name text there
-     computes to ~11.7:1 (same figure as elsewhere on this page — same
-     ship opacity, same paper colour). Both clear 4.5:1 AA with real
-     margin. No decoration beyond the hairlines — no icons, numbers, or
-     illustrations, and no gold anywhere in this section except the
-     tagline, which is the one place it's meant to carry. */
+  /* Divisions — pinned, scroll-linked sequence. Sits inside
+     .scroll-vessel-area too, so it needs position:relative; z-index:1
+     like .about-content/.carousel-section to stay above the ship — this
+     still holds with the section now much taller (see the <script>
+     above for how that affects the ship's own crossing).
+
+     The default state below (no .is-pinned class) is deliberately the
+     SAME fallback for three different conditions at once — no
+     JavaScript, prefers-reduced-motion, and a viewport shorter than
+     ~600px — because the script only adds that class when none of them
+     apply. One fallback path to reason about, not three. All three
+     blocks stay in the DOM and in the accessibility tree in every case;
+     nothing here uses display or visibility to hide a block, only
+     opacity (which doesn't remove an element from the tab order) plus
+     pointer-events (which only blocks mouse clicks, not keyboard focus).
+
+     Verified, not assumed: gold text (tagline/number/link) directly over
+     the densest part of the ship graphic computes to ~8.3:1; the
+     description (paper at 0.78 opacity) there computes to ~7.8:1; both
+     clear 4.5:1 AA with real margin. The section heading (paper at 0.55
+     opacity) is tighter — ~4.72:1 over that same worst case, still a
+     pass but with very little headroom; sized as a large heading (well
+     past the 24px/18.66px-bold large-text threshold) rather than body
+     text, which is the honest read of why it's fine, not just "it's
+     technically above 4.5". The block border (gold at 0.42 opacity) is
+     ~2.95:1 against navy-deep — under the 3:1 WCAG non-text-contrast
+     guideline. It's a decorative outline around content, not an
+     interactive control's boundary, so 3:1 isn't a hard requirement
+     here the way it would be for e.g. a button's edge — but it's close
+     enough to the line that it's worth knowing, not glossing over. */
   .divisions-section {
     position: relative;
     z-index: 1;
+  }
+
+  .divisions-sticky {
     padding-block: 4rem;
   }
 
-  .divisions-grid {
+  .divisions-heading {
+    font-size: var(--text-2xl);
+    color: var(--color-paper);
+    opacity: 0.55;
+  }
+
+  .divisions-stage {
     margin-top: 2.5rem;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    column-gap: clamp(2rem, 5vw, 3rem);
-    row-gap: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
   }
 
-  .division:not(:first-child) {
-    /* Thin vertical hairline between columns, not a card around each —
-       the site uses rules elsewhere for exactly this kind of separation,
-       and three boxed cards would read as a generic template. */
-    border-left: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
-    padding-left: clamp(1.5rem, 3vw, 2rem);
+  .division-slot {
+    display: flex;
+    justify-content: center;
   }
 
-  .division h3 {
+  .division-block {
+    width: 100%;
+    max-width: 520px;
+    padding: 2.5rem;
+    border: 1px solid color-mix(in srgb, var(--color-gold) 42%, transparent);
+    border-radius: 6px;
+    /* Always starts fully visible in the stylesheet — never opacity: 0
+       by default. The faded in/out treatment is added per frame by the
+       script above, and only once .is-pinned is present. */
+    opacity: 1;
+  }
+
+  .block-number {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    color: var(--color-gold);
+  }
+
+  .division-block h3 {
+    margin-top: 0.5rem;
     font-size: var(--text-xl);
   }
 
-  .division .tagline {
+  .division-block .tagline {
     margin-top: 0.5rem;
     font-family: var(--font-sans);
     font-weight: 600;
@@ -667,73 +814,89 @@ import { divisions } from '../data/divisions';
     color: var(--color-gold);
   }
 
-  .division .description {
+  .division-block .description {
     margin-top: 0.75rem;
-    max-width: 40ch;
     font-family: var(--font-serif);
     font-size: var(--text-base);
     line-height: var(--leading-relaxed);
+    color: var(--color-paper);
+    opacity: 0.78;
   }
 
-  .division .visit-link {
-    margin-top: 1rem;
+  .division-block .visit-link {
+    display: inline-block;
+    margin-top: 1.25rem;
     font-family: var(--font-sans);
     font-size: var(--text-sm);
-  }
-
-  .division .visit-link a {
-    /* Paper, not gold — gold is spent on the tagline in this section;
-       this is a link, so it gets the site's normal dark-ground link
-       treatment (paper + underline, gold only on hover) instead. */
-    color: var(--color-paper);
+    color: var(--color-gold);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.15em;
   }
 
-  .division .visit-link a:hover {
-    color: var(--color-gold);
+  .divisions-indicator {
+    /* Only meaningful once a sequence is actually active — see
+       .is-pinned below. */
+    display: none;
+    margin-top: 2rem;
+    gap: 1.5rem;
   }
 
-  /* Reveal-on-enter: a one-time fade + slight rise as each block enters
-     the viewport, triggered by IntersectionObserver in the <script>
-     below — not scroll-linked like the ship, just a discrete "play once"
-     transition. Unobserved after it fires once, so scrolling back up and
-     down again doesn't replay it. */
-  .division {
-    opacity: 0;
-    transform: translateY(16px);
-    transition:
-      opacity 0.6s ease-out,
-      transform 0.6s ease-out;
+  .indicator-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--color-gold);
+    opacity: 0.2;
   }
 
-  .division.is-visible {
-    opacity: 1;
-    transform: translateY(0);
+  /* Enhanced state, added by JS only when not reduced-motion and not a
+     short viewport. Everything above this point is what no-JS/reduced-
+     motion/short-viewport visitors get instead — normal document flow,
+     always visible. */
+  .divisions-section.is-pinned {
+    height: 300vh;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    .division {
-      opacity: 1;
-      transform: none;
-      transition: none;
-    }
+  .is-pinned .divisions-sticky {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
   }
 
-  /* Hairlines are a column separator — with one stacked column there's
-     nothing left to separate, so they're dropped entirely, not rotated
-     to horizontal. */
-  @media (max-width: 900px) {
-    .divisions-grid {
-      grid-template-columns: 1fr;
-      row-gap: 2.5rem;
-    }
+  .is-pinned .divisions-stage {
+    position: relative;
+    flex: 1;
+    display: block;
+  }
 
-    .division:not(:first-child) {
-      border-left: none;
-      padding-left: 0;
-    }
+  .is-pinned .division-slot {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 1.5rem;
+  }
+
+  .is-pinned .division-block {
+    /* opacity / transform / pointer-events / z-index are written per
+       frame by the script above. */
+    will-change: opacity, transform;
+  }
+
+  .is-pinned .division-block.is-focused {
+    opacity: 1 !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    z-index: 20 !important;
+  }
+
+  .is-pinned .divisions-indicator {
+    display: flex;
   }
 
   /* Recruiting */

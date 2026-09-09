@@ -129,19 +129,48 @@ wording, which should be treated as fixed unless BSGT itself asks for a copy cha
 don't silently rewrite it.
 
 **Divisions**, between the About content and the carousel: "One vision, supported by
-three divisions" over a three-column grid (Events, Research, Marketing) — three side-by-
-side blocks, not a pinned or scroll-jacked sequence taking over the viewport — separated
-by thin vertical hairlines rather than cards, stacking to one column below ~900px with
-the hairlines dropped, not rotated. Per division: name (serif, largest), a one-line
-tagline (gold — the only gold in this section), a description (paper, smaller, its own
-measure cap), and a "Visit division" link to that division's page. Each block reveals
-once with a short fade and slight rise as it enters the viewport — a one-time trigger,
-not scroll-linked the way the ship is — and does nothing at all under
-`prefers-reduced-motion`. Data lives in `src/data/divisions.ts` — a small typed array,
-not a content collection; these are permanent structural items, not posts, and the same
-file drives both these blocks and the division pages below, so the copy is never
-duplicated. See the copy in the repo for the exact wording, same rule as the About
-content above.
+three divisions" above a **pinned, scroll-linked sequence** (Events, Research,
+Marketing) — the section pins in place for ~3 viewport heights while scrolling and each
+division's outlined block takes over the sticky panel in turn, reversing smoothly on
+scroll up. Not a static three-column grid. Per division, in order: number (01/02/03,
+gold, small, letter-spaced), name (serif, large), a one-line tagline (gold), a
+description (paper at ~0.78 opacity), and a "Visit division" link to that division's
+page (gold, underlined). The block itself is an outlined panel — 1px gold border at
+0.42 opacity, 6px radius, generous padding, ~520px max-width, vertically centred in the
+sticky viewport. Three thin horizontal rules beneath the blocks act as a position
+indicator, each rising from 0.2 to 0.9 opacity as its block becomes active.
+
+Progress through the section is scroll-derived and eased with the same damped-follow
+formula as the ship (`current += (target - current) * DAMPING`, `DAMPING` imported from
+`src/lib/motion.ts` so the two independent animation loops on this page can't drift
+apart). Per block `i` of `n`: `d = progress - (i + 0.5) / n`, `opacity =
+smoothstep(1 - min(1, |d| / BAND))`, `translateY = d * -TRAVEL / BAND * 0.5`, with
+`BAND = 0.18` and `TRAVEL = 110px` as named constants. Only `transform` and `opacity`
+are animated (plus `pointer-events: none` below 0.5 opacity, so a faded block's link
+isn't mouse-clickable, and `z-index` to keep the absolutely-stacked blocks painting in
+the right order). Only one block is meaningfully visible at a time.
+
+**Fallbacks are required, not a nice-to-have, and all three collapse to the same
+state**: under `prefers-reduced-motion`, on a viewport under ~600px tall ("pinning on a
+short screen traps the reader"), or with JavaScript unavailable, the section renders as
+normal document flow — no pinning, no `height: 300vh`, no rAF loop — with all three
+blocks stacked vertically, stationary, and fully visible in document order. The
+stylesheet never sets a division block's default opacity below 1; the enhancement
+(pinning + animation) is added by JS as an opt-in class only when none of those three
+conditions apply, so there is one fallback path, not three ad hoc ones. All three
+blocks stay in the DOM and in the accessibility tree at all times regardless of visual
+opacity — a screen reader or keyboard (Tab) user can always reach all three "Visit
+division" links, and a block that receives keyboard focus is forced fully visible and
+frontmost for as long as it holds focus, so focus is never trapped on a visually-hidden
+block. An `IntersectionObserver` pauses the rAF loop while the section is off-screen,
+mirroring the ship's own pause behaviour; it's a second, independent rAF loop on this
+page (the ship's is the first), deliberately not merged into one shared loop — see the
+comment in `src/pages/index.astro` for why.
+
+Data lives in `src/data/divisions.ts` — a small typed array, not a content collection;
+these are permanent structural items, not posts, and the same file drives both this
+sequence and the division pages below, so the copy is never duplicated. See the copy in
+the repo for the exact wording, same rule as the About content above.
 
 **Division pages** (`/divisions/[slug]`, one dynamic route generated from
 `divisions.ts`, not three hand-written files): the division's name and tagline as a
