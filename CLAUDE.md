@@ -36,10 +36,23 @@ that spec when something here is unclear or missing.
 redirect — this only works once deployed, not in local `astro dev`/`astro preview`).
 Nav is About → Team → Articles → Events, with About pointing to `/`. The homepage is a
 full-viewport hero (animated mark, staggered fade-in content, a once-per-session intro
-animation) followed by the About prose + image carousel (sharing one scroll-linked
-vessel background), then the recruiting block, all now one continuous `navy-deep`
-ground end to end. See spec §3 for the full description — don't rebuild an
+animation), then — all inside `.scroll-vessel-area`, sharing the one scroll-linked
+vessel background — the About prose, the three-divisions section, and the image
+carousel, then the recruiting block outside that area, all now one continuous
+`navy-deep` ground end to end. See spec §3 for the full description — don't rebuild an
 articles-led homepage, that design was retired.
+
+**Divisions section** (`src/data/divisions.ts`, rendered in `index.astro` between the
+About content and the carousel): three fixed items (Events, Research, Marketing),
+three-column grid at desktop width (`.divisions-grid`/`.division`), separated by thin
+vertical hairlines rather than cards — dropped entirely, not rotated to horizontal, when
+it stacks to one column below 900px. This is a small typed data file, not a content
+collection — three permanent structural items don't need drafts/dates/an id per entry,
+just an array of `{ name, tagline, description }`; add a fourth by adding a fourth
+object, nothing about the layout assumes exactly three. Gold is used **only** on the
+tagline in this section (verified: ~12.5:1 on plain navy-deep, ~8.3:1 in the worst case
+of sitting directly over the densest part of the ship graphic) — name and description
+stay plain `paper`, inherited, no gold added anywhere else here.
 
 `/team` and `/events` are also `navy-deep` now — see "Light vs dark grounds" below
 before touching either.

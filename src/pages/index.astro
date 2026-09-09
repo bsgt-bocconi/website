@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Mark from '../components/Mark.astro';
 import Carousel from '../components/Carousel.astro';
 import VesselSilhouette from '../components/VesselSilhouette.astro';
+import { divisions } from '../data/divisions';
 ---
 
 <BaseLayout
@@ -99,6 +100,24 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
               global trade come together.
             </p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="divisions-section">
+      <div class="wrap-wide">
+        <h2>One vision, supported by three divisions</h2>
+
+        <div class="divisions-grid">
+          {
+            divisions.map((division) => (
+              <div class="division">
+                <h3>{division.name}</h3>
+                <p class="tagline">{division.tagline}</p>
+                <p class="description">{division.description}</p>
+              </div>
+            ))
+          }
         </div>
       </div>
     </section>
@@ -576,6 +595,73 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
     .about-pair {
       grid-template-columns: 1fr;
       gap: 1rem;
+    }
+  }
+
+  /* Divisions — sits inside .scroll-vessel-area too (between About and the
+     carousel), so it needs the same position:relative; z-index:1 as
+     .about-content/.carousel-section to stay above the ship. Verified,
+     not assumed: gold tagline text directly over the densest part of the
+     ship graphic computes to ~8.3:1; paper description/name text there
+     computes to ~11.7:1 (same figure as elsewhere on this page — same
+     ship opacity, same paper colour). Both clear 4.5:1 AA with real
+     margin. No decoration beyond the hairlines — no icons, numbers, or
+     illustrations, and no gold anywhere in this section except the
+     tagline, which is the one place it's meant to carry. */
+  .divisions-section {
+    position: relative;
+    z-index: 1;
+    padding-block: 4rem;
+  }
+
+  .divisions-grid {
+    margin-top: 2.5rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    column-gap: clamp(2rem, 5vw, 3rem);
+    row-gap: 2.5rem;
+  }
+
+  .division:not(:first-child) {
+    /* Thin vertical hairline between columns, not a card around each —
+       the site uses rules elsewhere for exactly this kind of separation,
+       and three boxed cards would read as a generic template. */
+    border-left: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+    padding-left: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  .division h3 {
+    font-size: var(--text-xl);
+  }
+
+  .division .tagline {
+    margin-top: 0.5rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--color-gold);
+  }
+
+  .division .description {
+    margin-top: 0.75rem;
+    max-width: 40ch;
+    font-family: var(--font-serif);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+  }
+
+  /* Hairlines are a column separator — with one stacked column there's
+     nothing left to separate, so they're dropped entirely, not rotated
+     to horizontal. */
+  @media (max-width: 900px) {
+    .divisions-grid {
+      grid-template-columns: 1fr;
+      row-gap: 2.5rem;
+    }
+
+    .division:not(:first-child) {
+      border-left: none;
+      padding-left: 0;
     }
   }
 

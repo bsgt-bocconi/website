@@ -124,6 +124,15 @@ its own measure. See the copy in the repo (`src/pages/index.astro`) for the exac
 wording, which should be treated as fixed unless BSGT itself asks for a copy change;
 don't silently rewrite it.
 
+**Divisions**, between the About content and the carousel: "One vision, supported by
+three divisions" over a three-column grid (Events, Research, Marketing), separated by
+thin vertical hairlines rather than cards, stacking to one column below ~900px with the
+hairlines dropped, not rotated. Per division: name (serif, largest), a one-line tagline
+(gold — the only gold in this section), then a description (paper, smaller, its own
+measure cap). Data lives in `src/data/divisions.ts` — a small typed array, not a content
+collection; these are permanent structural items, not posts. See the copy in the repo for
+the exact wording, same rule as the About content above.
+
 **Image carousel.** A CSS scroll-snap carousel (no library), swipeable and keyboard-arrow
 navigable, that must not trap focus. Slides are a content collection (§4) with the same
 `draft` gate as articles/events/team — one real slide exists (`brand/vessel.jpg`); the rest
