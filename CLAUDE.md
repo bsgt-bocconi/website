@@ -42,17 +42,49 @@ carousel, then the recruiting block outside that area, all now one continuous
 `navy-deep` ground end to end. See spec §3 for the full description — don't rebuild an
 articles-led homepage, that design was retired.
 
-**Divisions section** (`src/data/divisions.ts`, rendered in `index.astro` between the
-About content and the carousel): three fixed items (Events, Research, Marketing),
-three-column grid at desktop width (`.divisions-grid`/`.division`), separated by thin
-vertical hairlines rather than cards — dropped entirely, not rotated to horizontal, when
-it stacks to one column below 900px. This is a small typed data file, not a content
-collection — three permanent structural items don't need drafts/dates/an id per entry,
-just an array of `{ name, tagline, description }`; add a fourth by adding a fourth
-object, nothing about the layout assumes exactly three. Gold is used **only** on the
-tagline in this section (verified: ~12.5:1 on plain navy-deep, ~8.3:1 in the worst case
-of sitting directly over the densest part of the ship graphic) — name and description
-stay plain `paper`, inherited, no gold added anywhere else here.
+**Divisions.** `src/data/divisions.ts` — three fixed items (Events, Research, Marketing),
+each `{ slug, name, tagline, description }` — is the single source of truth for both the
+homepage blocks and the `/divisions/[slug]` pages; neither hardcodes the copy. A small
+typed data file, not a content collection — permanent structural items don't need
+drafts/dates/an id-per-file, just an array; add a fourth division by adding a fourth
+object with a `slug`, nothing about either the homepage layout or the dynamic route
+assumes exactly three.
+
+*Homepage* (`index.astro`, between the About content and the carousel, still inside
+`.scroll-vessel-area`): three side-by-side blocks — **not** a pinned/scroll-jacked
+sequence, and don't build one — separated by thin vertical hairlines rather than cards,
+dropped entirely (not rotated to horizontal) when they stack to one column below 900px.
+Each block reveals once with a short fade + rise as it enters the viewport
+(`[data-reveal]`, `IntersectionObserver`, `.is-visible` class — a discrete one-shot
+trigger, deliberately not scroll-linked the way the ship is; unobserved after it fires
+so scrolling back up doesn't replay it) and ends with a "Visit division" link to its
+`/divisions/[slug]` page. Under `prefers-reduced-motion` the JS doesn't even run — the
+CSS media query alone shows the blocks, so nothing here depends on the script executing.
+This is a fourth interaction/motion-only script on this page (see the hard-constraints
+entry below). Gold is used **only** on the tagline (verified: ~12.5:1 on plain
+navy-deep, ~8.3:1 worst-case directly over the ship — the "Visit division" link is
+`paper` + underline, gold only on hover, matching the site's normal dark-ground link
+convention, specifically *not* gold at rest so the tagline stays the one gold element).
+
+*Division pages* (`src/pages/divisions/[slug].astro`, one dynamic route generated from
+`divisions` via `getStaticPaths`, not three separate files): header (name + tagline),
+description, then division-specific real content — Research pulls the 3 most recent
+non-draft articles (a bespoke small teaser list, not `ArticleCard`, since that component's
+colours are tuned for the paper ground articles use and reusing it here would need making
+it ground-aware for a single call site), Events pulls upcoming events via `EventItem`
+(already dark-ground-safe from the `/events` page work, reused directly), Marketing
+renders `<Carousel />` directly — then a placeholder section (same visible treatment as
+`Carousel.astro`'s `.placeholder-slide`) for detail content to be written later, then
+`ApplyButton` + a link back to `/`. Empty states (draft-filtered to nothing) reuse the
+same "check back soon" wording already established on `/articles` and `/events`, so a
+production build with everything still drafted looks like an intentional early state, not
+a broken page — verified directly against a real build, not assumed. Reached only from
+the homepage blocks; **not** added to the nav (stays About → Team → Articles → Events).
+
+**`ApplyButton.astro`**: the one place `https://forms.gle/Ng2gsTbMKWgNvbAM7` is written in
+the codebase. Used on the homepage recruiting block and on every division page — if the
+form URL ever changes, it changes in exactly one file. Layout-agnostic on purpose (no
+margin of its own); callers add their own spacing around it.
 
 `/team` and `/events` are also `navy-deep` now — see "Light vs dark grounds" below
 before touching either.
@@ -223,12 +255,14 @@ Doesn't apply to "BSGT" itself, which is used freely in both contexts.
 - No Google Analytics, no tag manager, no tracking pixels.
 - No Google Fonts CDN — fonts are bundled locally.
 - No client-side JS beyond interaction-only scripts that render no content of
-  their own. Currently three, all in `src/pages/index.astro` /
+  their own. Currently four, all in `src/pages/index.astro` /
   `src/components/Carousel.astro`: the carousel's keyboard-arrow handling,
-  the once-per-session intro-animation `sessionStorage` check, and the
+  the once-per-session intro-animation `sessionStorage` check, the
   scroll-linked vessel's `requestAnimationFrame` motion loop (see
   "Scroll-linked vessel" below — this one runs the whole effect itself now,
-  it isn't a fallback for a CSS path anymore). Don't add a fourth without a
+  it isn't a fallback for a CSS path anymore), and the divisions blocks'
+  one-shot `IntersectionObserver` reveal (see "Divisions" below — discrete,
+  fires once per block, not scroll-linked). Don't add a fifth without a
   real reason — CSS/native-HTML solves almost everything else on this site.
 
 ## Content model (see spec §4 for exact field types)

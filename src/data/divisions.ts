@@ -1,4 +1,5 @@
 export interface Division {
+  slug: string;
   name: string;
   tagline: string;
   description: string;
@@ -6,22 +7,26 @@ export interface Division {
 
 // Fixed, small, structural content — not a content collection (that would
 // be overkill for three permanent items). Adding a fourth is just adding
-// another object to this array; nothing about the layout depends on the
-// count being exactly three.
+// another object to this array; nothing about the layout or the
+// /divisions/[slug] page depends on the count being exactly three. `slug`
+// drives that route directly — see src/pages/divisions/[slug].astro.
 export const divisions: Division[] = [
   {
+    slug: 'events',
     name: 'Events',
     tagline: 'Bringing the industry closer.',
     description:
       'We connect Bocconi students with maritime professionals through guest speakers, workshops, case sessions and industry experiences.',
   },
   {
+    slug: 'research',
     name: 'Research',
     tagline: 'Turning shipping into insight.',
     description:
       'We research, analyse and explain the forces shaping shipping, finance and global trade — from market movements and vessel investments to M&A and industry trends.',
   },
   {
+    slug: 'marketing',
     name: 'Marketing',
     tagline: 'Taking our ideas beyond Bocconi.',
     description:

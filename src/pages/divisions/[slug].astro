@@ -1,0 +1,276 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Carousel from '../../components/Carousel.astro';
+import EventItem from '../../components/EventItem.astro';
+import ApplyButton from '../../components/ApplyButton.astro';
+import { divisions, type Division } from '../../data/divisions';
+import { formatAuthors, formatDate } from '../../lib/format';
+
+export async function getStaticPaths() {
+  return divisions.map((division) => ({
+    params: { slug: division.slug },
+    props: { division },
+  }));
+}
+
+interface Props {
+  division: Division;
+}
+
+const { division } = Astro.props;
+
+const recentArticles =
+  division.slug === 'research'
+    ? (await getCollection('articles', ({ data }) => import.meta.env.DEV || data.draft === false))
+        .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
+        .slice(0, 3)
+    : [];
+
+const upcomingEvents =
+  division.slug === 'events'
+    ? (await getCollection('events', ({ data }) => import.meta.env.DEV || data.draft === false))
+        .filter((e) => {
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          return e.data.date.valueOf() >= todayStart.valueOf();
+        })
+        .sort((a, b) => a.data.date.valueOf() - b.data.date.valueOf())
+        .slice(0, 3)
+    : [];
+---
+
+<BaseLayout title={`${division.name} — BSGT`} description={division.description}>
+  <div class="division-page on-dark">
+    <div class="wrap-wide division-intro">
+      <header class="division-header">
+        <h1>{division.name}</h1>
+        <p class="tagline">{division.tagline}</p>
+      </header>
+      <p class="description">{division.description}</p>
+    </div>
+
+    {
+      division.slug === 'research' && (
+        <section class="division-content">
+          <div class="wrap-wide">
+            <h2>Recent research</h2>
+            {recentArticles.length === 0 ? (
+              <p class="empty">No articles have been published yet — check back soon.</p>
+            ) : (
+              <ul class="teaser-list">
+                {recentArticles.map((entry) => (
+                  <li>
+                    <a href={`/articles/${entry.data.slug}`}>{entry.data.title}</a>
+                    <p class="teaser-meta">
+                      <span>{formatAuthors(entry.data.author)}</span>
+                      <time datetime={entry.data.date.toISOString()}>
+                        {formatDate(entry.data.date)}
+                      </time>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p class="section-link">
+              <a href="/articles">All articles</a>
+            </p>
+          </div>
+        </section>
+      )
+    }
+
+    {
+      division.slug === 'events' && (
+        <section class="division-content">
+          <div class="wrap-wide">
+            <h2>Upcoming events</h2>
+            {upcomingEvents.length === 0 ? (
+              <p class="empty">No upcoming events right now — check back soon.</p>
+            ) : (
+              <ul class="event-list">
+                {upcomingEvents.map((entry) => (
+                  <li>
+                    <EventItem entry={entry} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p class="section-link">
+              <a href="/events">All events</a>
+            </p>
+          </div>
+        </section>
+      )
+    }
+
+    {division.slug === 'marketing' && <Carousel />}
+
+    <div class="wrap-wide division-footer">
+      <section class="division-placeholder">
+        <p>Placeholder — detailed {division.name.toLowerCase()} content coming soon.</p>
+      </section>
+
+      <div class="division-actions">
+        <ApplyButton />
+        <a class="back-link" href="/">Back to homepage</a>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  /* Dark ground, same reasoning as /team and /events — see CLAUDE.md's
+     "Light vs dark grounds". */
+  .division-page {
+    background: var(--color-navy-deep);
+    color: var(--color-paper);
+    padding-block: 3rem 4rem;
+  }
+
+  .division-intro {
+    max-width: 100%;
+  }
+
+  .division-header h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .division-header .tagline {
+    margin-top: 0.75rem;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--text-lg);
+    color: var(--color-gold);
+  }
+
+  .description {
+    margin-top: 1.5rem;
+    max-width: 62ch;
+    font-family: var(--font-serif);
+    font-size: var(--text-article);
+    line-height: var(--leading-relaxed);
+  }
+
+  .division-content {
+    margin-top: 3rem;
+    padding-top: 3rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  }
+
+  .division-content h2 {
+    font-size: var(--text-2xl);
+  }
+
+  .empty {
+    margin-top: 1.5rem;
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    color: var(--color-paper);
+    opacity: 0.75;
+  }
+
+  .teaser-list {
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .teaser-list a {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    color: var(--color-paper);
+    text-decoration: none;
+  }
+
+  .teaser-list a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .teaser-meta {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.875rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-paper);
+    opacity: 0.75;
+  }
+
+  .event-list {
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .event-list li + li {
+    padding-top: 2rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  }
+
+  .section-link {
+    margin-top: 1.5rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+  }
+
+  .section-link a {
+    color: var(--color-paper);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .section-link a:hover {
+    color: var(--color-gold);
+  }
+
+  .division-footer {
+    margin-top: 3rem;
+  }
+
+  /* Same visible treatment as other placeholders on the site — see
+     Carousel.astro's .placeholder-slide. */
+  .division-placeholder {
+    padding: 1.5rem;
+    background: var(--color-navy-mid);
+    border: 1px dashed color-mix(in srgb, var(--color-paper) 35%, transparent);
+  }
+
+  .division-placeholder p {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-paper);
+    opacity: 0.75;
+  }
+
+  .division-actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .back-link {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-paper);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .back-link:hover {
+    color: var(--color-gold);
+  }
+</style>

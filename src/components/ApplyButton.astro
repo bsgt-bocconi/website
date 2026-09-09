@@ -1,0 +1,27 @@
+---
+// The one recruiting form URL for the whole site — lives here only, so
+// nothing else needs to hardcode it. Used on the homepage recruiting
+// block and on every /divisions/[slug] page.
+---
+
+<a class="apply-btn" href="https://forms.gle/Ng2gsTbMKWgNvbAM7" target="_blank" rel="noopener">
+  Apply
+</a>
+
+<style>
+  .apply-btn {
+    display: inline-block;
+    padding: 0.875rem 2rem;
+    background: var(--color-gold);
+    color: var(--color-navy-deep);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--text-base);
+    text-decoration: none;
+    border-radius: 2px;
+  }
+
+  .apply-btn:hover {
+    background: color-mix(in srgb, var(--color-gold) 85%, white);
+  }
+</style>

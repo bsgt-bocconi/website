@@ -53,15 +53,19 @@ surface near zero. Do not introduce any of them without an explicit decision to 
 ## 3. Sitemap
 
 ```
-/                       Home / About — hero, about content, carousel, recruiting block
+/                       Home / About — hero, about content, divisions, carousel, recruiting
 /team                   The Team
 /articles               Article index
 /articles/[slug]        Individual article
 /events                 Events — upcoming and past
+/divisions/[slug]       One per division (events, research, marketing) — reached from the
+                        homepage divisions blocks, not from the nav
 /privacy                Privacy policy
 ```
 
-Flat and shallow on purpose. Six routes plus article pages.
+Flat and shallow on purpose. Six routes plus article pages plus one route per division —
+the last two are the only dynamic ones, both generated from data rather than hand-written
+per page.
 
 **URL structure is a one-time decision.** Changing `/articles/[slug]` later costs
 accumulated search ranking. Lock it now.
@@ -125,13 +129,33 @@ wording, which should be treated as fixed unless BSGT itself asks for a copy cha
 don't silently rewrite it.
 
 **Divisions**, between the About content and the carousel: "One vision, supported by
-three divisions" over a three-column grid (Events, Research, Marketing), separated by
-thin vertical hairlines rather than cards, stacking to one column below ~900px with the
-hairlines dropped, not rotated. Per division: name (serif, largest), a one-line tagline
-(gold — the only gold in this section), then a description (paper, smaller, its own
-measure cap). Data lives in `src/data/divisions.ts` — a small typed array, not a content
-collection; these are permanent structural items, not posts. See the copy in the repo for
-the exact wording, same rule as the About content above.
+three divisions" over a three-column grid (Events, Research, Marketing) — three side-by-
+side blocks, not a pinned or scroll-jacked sequence taking over the viewport — separated
+by thin vertical hairlines rather than cards, stacking to one column below ~900px with
+the hairlines dropped, not rotated. Per division: name (serif, largest), a one-line
+tagline (gold — the only gold in this section), a description (paper, smaller, its own
+measure cap), and a "Visit division" link to that division's page. Each block reveals
+once with a short fade and slight rise as it enters the viewport — a one-time trigger,
+not scroll-linked the way the ship is — and does nothing at all under
+`prefers-reduced-motion`. Data lives in `src/data/divisions.ts` — a small typed array,
+not a content collection; these are permanent structural items, not posts, and the same
+file drives both these blocks and the division pages below, so the copy is never
+duplicated. See the copy in the repo for the exact wording, same rule as the About
+content above.
+
+**Division pages** (`/divisions/[slug]`, one dynamic route generated from
+`divisions.ts`, not three hand-written files): the division's name and tagline as a
+header, its description as an opening paragraph, then real content specific to that
+division — Research shows the most recent non-draft articles with a link to the full
+index, Events shows upcoming non-draft events with a link to the full events page,
+Marketing embeds the homepage's own carousel — then a clearly-marked placeholder section
+(matching the site's existing placeholder treatment) for detail to be written later, an
+Apply button to the same external form as the homepage recruiting block, and a link back
+to `/`. If a division's real content is empty (e.g. everything is still `draft: true`),
+that must read as an intentional early state — reusing the same empty-state wording
+already established on `/articles` and `/events` — not a broken page. `navy-deep`
+ground, same as the homepage; reached only from the homepage blocks, not added to the
+nav.
 
 **Image carousel.** A CSS scroll-snap carousel (no library), swipeable and keyboard-arrow
 navigable, that must not trap focus. Slides are a content collection (§4) with the same
