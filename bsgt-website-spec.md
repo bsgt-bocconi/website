@@ -136,9 +136,13 @@ scroll up. Not a static three-column grid. Per division, in order: number (01/02
 gold, small, letter-spaced), name (serif, large), a one-line tagline (gold), a
 description (paper at ~0.78 opacity), and a "Visit division" link to that division's
 page (gold, underlined). The block itself is an outlined panel — 1px gold border at
-0.42 opacity, 6px radius, generous padding, ~520px max-width, vertically centred in the
-sticky viewport. Three thin horizontal rules beneath the blocks act as a position
-indicator, each rising from 0.2 to 0.9 opacity as its block becomes active.
+0.5 opacity (raised from an initial 0.42, which fell under the 3:1 WCAG non-text
+guideline against both plain navy-deep and the ship-blended worst case; 0.5 clears 3:1
+against both with margin — this border is a functional divider between blocks, not
+decoration, so it's held to that threshold), 6px radius, generous padding, ~520px
+max-width, vertically centred in the sticky viewport. Three thin horizontal rules
+beneath the blocks act as a position indicator, each rising from 0.2 to 0.9 opacity as
+its block becomes active.
 
 Progress through the section is scroll-derived and eased with the same damped-follow
 formula as the ship (`current += (target - current) * DAMPING`, `DAMPING` imported from

@@ -743,17 +743,17 @@ import { divisions } from '../data/divisions';
      Verified, not assumed: gold text (tagline/number/link) directly over
      the densest part of the ship graphic computes to ~8.3:1; the
      description (paper at 0.78 opacity) there computes to ~7.8:1; both
-     clear 4.5:1 AA with real margin. The section heading (paper at 0.55
-     opacity) is tighter — ~4.72:1 over that same worst case, still a
-     pass but with very little headroom; sized as a large heading (well
-     past the 24px/18.66px-bold large-text threshold) rather than body
-     text, which is the honest read of why it's fine, not just "it's
-     technically above 4.5". The block border (gold at 0.42 opacity) is
-     ~2.95:1 against navy-deep — under the 3:1 WCAG non-text-contrast
-     guideline. It's a decorative outline around content, not an
-     interactive control's boundary, so 3:1 isn't a hard requirement
-     here the way it would be for e.g. a button's edge — but it's close
-     enough to the line that it's worth knowing, not glossing over. */
+     clear 4.5:1 AA with real margin. The section heading was raised from
+     paper at 0.55 (a first pass that only cleared AA by ~5%) to **0.7**:
+     ~6.62:1 over that same ship-blended worst case, ~8.83:1 against plain
+     navy-deep — real margin above the ~6:1 target this was raised to
+     meet, not just barely past it. The block border is a functional
+     divider between blocks, not decoration, so it's held to the 3:1
+     non-text guideline against both backgrounds it can actually sit
+     over: raised from gold at 0.42 (2.95:1 against navy-deep, 2.74:1
+     against the ship-blended worst case — under 3:1 on both) to **0.5**:
+     3.74:1 against navy-deep, 3.26:1 against the worst case — clears 3:1
+     with margin in both. */
   .divisions-section {
     position: relative;
     z-index: 1;
@@ -766,7 +766,7 @@ import { divisions } from '../data/divisions';
   .divisions-heading {
     font-size: var(--text-2xl);
     color: var(--color-paper);
-    opacity: 0.55;
+    opacity: 0.7;
   }
 
   .divisions-stage {
@@ -785,7 +785,7 @@ import { divisions } from '../data/divisions';
     width: 100%;
     max-width: 520px;
     padding: 2.5rem;
-    border: 1px solid color-mix(in srgb, var(--color-gold) 42%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
     border-radius: 6px;
     /* Always starts fully visible in the stylesheet — never opacity: 0
        by default. The faded in/out treatment is added per frame by the
