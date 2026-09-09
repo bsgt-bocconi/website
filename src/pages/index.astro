@@ -34,10 +34,12 @@ import { divisions } from '../data/divisions';
   </div>
 
   <div class="scroll-vessel-area on-dark">
-    <div class="scroll-vessel-clip" aria-hidden="true">
-      <div class="scroll-vessel-position">
-        <div class="scroll-vessel">
-          <VesselSilhouette />
+    <div class="scroll-vessel-sticky" aria-hidden="true">
+      <div class="scroll-vessel-clip">
+        <div class="scroll-vessel-position">
+          <div class="scroll-vessel">
+            <VesselSilhouette />
+          </div>
         </div>
       </div>
     </div>
@@ -506,46 +508,67 @@ import { divisions } from '../data/divisions';
      --focus-ring switches to gold here via .on-dark; color is set
      explicitly to paper since .on-dark only handles the focus ring.
 
-     No overflow property on this element, and there never should be one
-     again. Measured, not assumed, the last time this got it wrong: even
-     `overflow-x: hidden` alone (leaving overflow-y unset) was enough to
-     silently break position: sticky on a descendant, because per the CSS
-     Overflow spec an element can't have one axis compute to hidden and
-     the other stay visible — the UA forces the unset axis from visible to
-     auto, and auto breaks sticky exactly like hidden does. The divisions
-     cards are sticky again now (see "Divisions" below), just no longer
-     nested inside this element at all — but the rule stands regardless of
-     what's nested here today: clip the ship's own horizontal travel on
-     its own dedicated layer (.scroll-vessel-clip, below), never on a
-     shared ancestor. */
+     No overflow property on this element, no position property either —
+     nothing here needs it to be a positioning context any more (see
+     .scroll-vessel-sticky below), and there never should be an overflow
+     property here again regardless: `overflow-x: hidden` alone (leaving
+     overflow-y unset) was enough, in an earlier version, to silently
+     break position: sticky on a descendant — per the CSS Overflow spec
+     an element can't have one axis compute to hidden and the other stay
+     visible, so the UA forces the unset axis from visible to auto, which
+     breaks sticky exactly like hidden does. Whatever ends up nested in
+     here in future, clip horizontally on its own dedicated descendant
+     layer, never on this shared ancestor. */
   .scroll-vessel-area {
-    position: relative;
     background: var(--color-navy-deep);
     color: var(--color-paper);
   }
 
-  /* Clips the vessel's horizontal travel — the only reason
-     .scroll-vessel-area used to carry `overflow: hidden` itself. See the
-     comment on .scroll-vessel-area above for why that clip lives here, on
-     its own absolutely-positioned, full-bleed layer, instead. inset: 0
-     matches it to .scroll-vessel-area's own box exactly (that area has no
-     padding), so the clip boundary is unchanged. */
-  .scroll-vessel-clip {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
+  /* Holds the ship at a constant height in the viewport — ~33vh down —
+     for the whole time .scroll-vessel-area has room left to scroll
+     through, rather than letting it scroll up and off with the rest of
+     the hero/About content the way an absolutely-positioned layer
+     would. height: 0 so this element never itself consumes layout space
+     (it isn't part of the hero/About reading flow, just an anchor point
+     its child hangs off); the child's own rendered size still paints
+     normally, since overflow is untouched here (default visible) — only
+     .scroll-vessel-clip below, a descendant, actually clips anything.
+     That ordering is the whole point: overflow on an ANCESTOR of a
+     position: sticky element disables its stickiness (see the comment on
+     .scroll-vessel-area above, and CLAUDE.md, for the bug this already
+     caused once); overflow on a DESCENDANT of one doesn't touch the
+     sticky element's own positioning at all, so clipping here is safe. */
+  .scroll-vessel-sticky {
+    position: sticky;
+    top: 33vh;
+    height: 0;
     z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Clips the vessel's horizontal travel so it can never produce a
+     page-level scrollbar. A normal (non-absolutely-positioned) block now
+     — it doesn't need position: absolute to be sized or placed, since it
+     simply renders in-flow as .scroll-vessel-sticky's one child, right at
+     that sticky anchor point. translateY(-50%) centres it vertically ON
+     that anchor (shifting the whole clipped box, boundary included, up by
+     half its own rendered height) rather than pinning its top edge to it
+     — matching the old top: 33%; translate(-50%, -50%) centring this
+     replaced, just expressed on the box that actually determines what's
+     visible now instead of on an absolutely-positioned descendant of it. */
+  .scroll-vessel-clip {
+    width: 100%;
+    overflow: hidden;
+    transform: translateY(-50%);
   }
 
   .scroll-vessel-position {
-    position: absolute;
-    /* ~33% down the viewport, 52% of viewport width clamped so it stays
-       sensible from phone to ultrawide — tuned in a 680px-wide prototype,
-       expressed here as the same proportions rather than fixed pixels. */
-    top: 33%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /* Horizontal centring only — vertical position is
+       .scroll-vessel-sticky/.scroll-vessel-clip's job now, above.
+       52% of viewport width clamped so it stays sensible from phone to
+       ultrawide — tuned in a 680px-wide prototype, expressed here as the
+       same proportion rather than a fixed pixel width. */
+    margin-inline: auto;
     width: clamp(260px, 52vw, 720px);
   }
 
@@ -695,6 +718,24 @@ import { divisions } from '../data/divisions';
        actually position: sticky itself, and keeps this correct without
        adjustment if that ever changes. */
     --header-clearance: 96px;
+    /* Named per an explicit ask, not a magic number inline below. 80px
+       (this section's first version) let the next card start covering
+       the previous one almost immediately at real browser heights — the
+       reader never got a full, settled read of a card before it started
+       disappearing. 70vh instead: viewport-relative, not a fixed pixel
+       count, specifically so "enough room to read a card in full" scales
+       with the reader's actual window rather than assuming a height. */
+    --card-gap: 70vh;
+    /* All three cards render at this same height regardless of their own
+       content — see .division-card's min-height below for why. Measured
+       (not guessed) each division's natural, unconstrained content height
+       at the card's real full-wrap-wide width (1152px content width
+       inside .wrap-wide at 1200px): 285.7px / 312.9px / 285.7px for
+       Events/Research/Marketing — Research's is the tallest, so 340px
+       clears it with a little breathing room without leaving noticeably
+       dead space on the two shorter cards. Re-measure if the copy in
+       src/data/divisions.ts changes meaningfully in length. */
+    --card-min-height: 340px;
   }
 
   .division-card {
@@ -708,9 +749,22 @@ import { divisions } from '../data/divisions';
        order (later on top) per spec, but this is cheap to make explicit
        rather than lean on that default. */
     z-index: calc(var(--i) + 1);
-    margin-inline: auto;
+    /* Full wrap-wide width now, not a ~520px capped block — these read as
+       page-width panels. The prose inside (.description below) still
+       gets its own measure cap, same "cap the text, not the container"
+       rule the rest of the site follows (see CLAUDE.md's "Layout width"
+       section) — a page-width panel isn't the same thing as page-width
+       body text, and stretching the description to ~70ch+ would hurt
+       readability for no benefit. */
     width: 100%;
-    max-width: 520px;
+    /* Same value on all three cards, not each one's own content height —
+       Events/Research/Marketing's descriptions aren't quite the same
+       length, and letting the card shrink-wrap its content would make
+       the sliver offsets (the whole point of the 12px stagger) look like
+       a layout accident instead of a deliberate rhythm. Measured against
+       the tallest of the three at the widths this was verified at
+       (800px and 1200px viewport heights); see CLAUDE.md for the figure. */
+    min-height: var(--card-min-height);
     padding: 2.5rem;
     /* Solid, not transparent — this is what makes the stacking effect
        read at all. A transparent card would let the one sliding up
@@ -724,7 +778,7 @@ import { divisions } from '../data/divisions';
   }
 
   .division-card:not(:last-child) {
-    margin-bottom: 80px;
+    margin-bottom: var(--card-gap);
   }
 
   .block-number {
@@ -750,6 +804,11 @@ import { divisions } from '../data/divisions';
 
   .division-card .description {
     margin-top: 0.75rem;
+    /* Cap the text, not the card — same rule as .about-pair p and the
+       hero's .slogan (see CLAUDE.md's "Layout width" section). The card
+       itself is full-width now (see .division-card above), but stretching
+       this paragraph out to match would hurt readability for no benefit. */
+    max-width: 60ch;
     font-family: var(--font-serif);
     font-size: var(--text-base);
     line-height: var(--leading-relaxed);

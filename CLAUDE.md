@@ -61,11 +61,31 @@ card slides up and covers the one before it, leaving a ~12px sliver of it showin
 `--header-clearance: 96px` leaves the first card's stuck position clear of the site
 header (measured height ~76px) with a little margin — the header isn't actually
 `position: sticky` itself today, but this keeps the offset correct if that ever changes,
-per an explicit ask to account for it. Cards except the last carry `margin-bottom: 80px`
-for spacing between their natural (unstuck) positions. `z-index: calc(var(--i) + 1)`
-makes the paint order explicit (later cards on top) rather than leaning on the default
-DOM-order stacking behaviour sibling `position: sticky` elements get with `z-index: auto`
-— correct either way, but worth being explicit about.
+per an explicit ask to account for it. `z-index: calc(var(--i) + 1)` makes the paint order
+explicit (later cards on top) rather than leaning on the default DOM-order stacking
+behaviour sibling `position: sticky` elements get with `z-index: auto` — correct either
+way, but worth being explicit about.
+
+Cards are **full width** — `width: 100%` inside `.wrap-wide`, not the ~520px-capped
+block an earlier version used — so they read as page-width panels; per the site's usual
+"cap the text, not the container" rule (see "Layout width" below), `.division-card
+.description` still gets its own `max-width: 60ch` so the prose itself doesn't stretch
+edge-to-edge just because the panel does. Spacing between cards' natural (unstuck)
+positions is `--card-gap: 70vh`, a named custom property (not a bare number in the rule)
+specifically because a first attempt at `80px` let the next card start covering the
+previous one almost immediately at real browser heights — the reader never got a settled,
+full read of a card before the next started sliding over it. `70vh` is viewport-relative
+on purpose, so "enough room to read a card before it's covered" scales with the reader's
+actual window rather than assuming a fixed height; verified at both 800px and 1200px
+viewport heights that each card gets a genuinely static, fully-visible window before the
+next begins overlapping it (see the measurement note two paragraphs down). All three
+cards also share one `--card-min-height: 340px` rather than sizing to their own content —
+measured natural (unconstrained) heights at the real 1152px card width are 285.7px /
+312.9px / 285.7px for Events/Research/Marketing, so 340px clears the tallest (Research)
+with a little room to spare without leaving obviously dead space on the shorter two.
+Without this, the three cards' differing natural heights would make the 12px sliver
+offsets look like a layout accident rather than a deliberate rhythm. Re-measure both
+figures if the copy in `src/data/divisions.ts` changes meaningfully in length.
 
 This **replaced** an earlier JS-driven pinned sequence (a `requestAnimationFrame` loop,
 damped progress maths shared with the vessel via `DAMPING` in `src/lib/motion.ts`,
@@ -215,33 +235,55 @@ it covers), so a busier drawing doesn't change the ratio, only how much text has
 to sit over it. See the code comment on `.scroll-vessel :global(svg)` in `index.astro`
 for the numbers; re-verify both tiers again if the opacity changes.
 
-The ship's horizontal travel needs clipping to guarantee no horizontal scrollbar from
-the animation's range, at any viewport width — but that clip lives on
-`.scroll-vessel-clip`, a small absolutely-positioned (`inset: 0`) wrapper around just
-`.scroll-vessel-position`, **not** on `.scroll-vessel-area` itself, and `.scroll-vessel-
-area` should never carry an `overflow` property again, on either axis, no matter what
-ends up nested inside it in a future pass. This is a hard-won rule, not a style
-preference: `.scroll-vessel-area` used to wrap the divisions section too, back when
-divisions was a `position: sticky` pinned sequence, and `overflow: hidden` (or even just
-`overflow-x: hidden` alone, unset `overflow-y` included — per the CSS Overflow spec, an
-element can't have one axis compute to `hidden` and the other stay `visible`; if either
-axis is non-`visible` the browser forces the *other* axis's computed value from `visible`
-to `auto`, which breaks sticky exactly the same way) on that shared ancestor silently
-broke the divisions sequence's sticky positioning entirely — a real, shipped bug, only
-caught by scroll-position instrumentation (`getBoundingClientRect().top` on the sticky
-element tracked its non-sticky parent's `top` exactly at every scroll offset — it never
-actually stuck, it just scrolled normally with the page), not by inspecting the
-animation code, because the JS driving it was correct the whole time; only the CSS
-pinning was broken. Divisions is CSS-only stacking cards now, and no longer nested inside
-`.scroll-vessel-area` at all (see "Divisions" above), so this specific ancestor
-relationship no longer exists — but the underlying trap is general, not specific to that
-one now-removed structure: if anything `position: sticky` is ever nested inside
-`.scroll-vessel-area` again, giving that wrapper its own `overflow` (for clipping or any
-other reason) will break it the same way. Keep the clip isolated on its own dedicated
-layer, sibling to whatever else lives in `.scroll-vessel-area`, the way
-`.scroll-vessel-clip` already does. If you ever touch this area, re-verify with rect
-instrumentation, not visual inspection — a broken sticky element can look deceptively
-close to working before silently failing.
+**Holding a constant vertical position while translating horizontally** is a second,
+separate `position: sticky` use on this page, structurally nested inside
+`.scroll-vessel-area`:
+
+```
+.scroll-vessel-area          plain block — no overflow, no position property at all
+  .scroll-vessel-sticky      position: sticky; top: 33vh; height: 0
+    .scroll-vessel-clip      overflow: hidden; width: 100%; transform: translateY(-50%)
+      .scroll-vessel-position  margin-inline: auto; width: clamp(...) — horizontal centring only
+        .scroll-vessel         JS writes transform: translate3d(x, 0, 0) here, every frame
+```
+
+An earlier version had `.scroll-vessel-clip` as an absolutely-positioned, `inset: 0`
+layer directly inside `.scroll-vessel-area` — which meant the ship scrolled up and off
+with the rest of the hero/About content instead of holding its vertical position, since
+nothing was actually pinning it. `.scroll-vessel-sticky` fixes that: `height: 0` so it
+never itself consumes layout space (it isn't part of the hero/About reading flow, just an
+anchor point its one child hangs off of), `top: 33vh` so it sticks a third of the way
+down the viewport for as long as `.scroll-vessel-area` (its containing block) has room
+left to scroll through — verified by measurement, not assumed: `.scroll-vessel-clip`'s
+`rect.top` holds within a fraction of a pixel across the whole hero+About scroll range at
+both 800px and 1200px viewport heights, only releasing right at the very end as
+`.scroll-vessel-area` runs out of room, which is correct sticky behaviour, not a bug.
+`.scroll-vessel-clip`'s `transform: translateY(-50%)` centres it vertically *on* that
+33vh anchor point (shifting the whole clipped box up by half its own rendered height)
+rather than pinning its top edge there — the same visual centring the old
+`top: 33%; translate(-50%, -50%)` approach gave the ship, just expressed on the box that
+now actually determines what's visible.
+
+**This changes which element the horizontal-clip rule applies to, and makes the
+"never add `overflow` to `.scroll-vessel-area`" rule immediately load-bearing again, not
+just future-proofing.** `.scroll-vessel-area` now nests a `position: sticky` element
+inside it (`.scroll-vessel-sticky`, above) the same way it used to nest the divisions
+sequence's sticky panel — so the exact same trap applies right now, not hypothetically:
+`overflow: hidden` (or even just `overflow-x: hidden` alone, unset `overflow-y` included
+— per the CSS Overflow spec, an element can't have one axis compute to `hidden` and the
+other stay `visible`; if either axis is non-`visible` the browser forces the *other*
+axis's computed value from `visible` to `auto`, which breaks sticky exactly the same way)
+on `.scroll-vessel-area` would silently break `.scroll-vessel-sticky`'s stickiness, the
+same real, shipped bug the divisions sequence hit before (see CLAUDE.md history / git log
+for that one — caught only by scroll-position instrumentation, `getBoundingClientRect()`,
+not by inspecting the animation code, since the JS was correct the whole time and only
+the CSS pinning was broken). The horizontal clip is on `.scroll-vessel-clip` instead — a
+**descendant** of the sticky element, not an ancestor of it, which is what makes clipping
+there safe: overflow on a descendant only ever affects that descendant's own children, it
+has no bearing on how its sticky ancestor gets positioned. Keep it that way. If you ever
+touch this area, re-verify with rect instrumentation, not visual inspection — a broken
+sticky element can look deceptively close to working before silently failing for the rest
+of its scroll range.
 
 ## Layout width: `.wrap` vs `.wrap-wide`
 

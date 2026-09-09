@@ -119,19 +119,37 @@ reasoning — don't re-introduce the CSS approach thinking it's a simplification
 via `IntersectionObserver` when off-screen; static at mid-travel, loop never started,
 under `prefers-reduced-motion`. Its opacity must be verified, not assumed, against AA
 contrast for whatever body copy it can sit behind — see the code comment in `index.astro`
-for the actual computed numbers. The horizontal travel needs clipping so it can never
-produce a page-level scrollbar (checked at narrow mobile widths specifically), but that
-clip lives on its own small absolutely-positioned wrapper around just the ship, never on
-the shared wrapping container itself — that container must never carry an `overflow`
-property on any axis, full stop, because `overflow` on any axis on an ancestor of a
+for the actual computed numbers.
+
+The ship also **holds a constant vertical position** — about a third of the way down the
+viewport — for the whole hero+About passage, moving only horizontally, rather than
+scrolling up and off with the rest of the content. This is a second `position: sticky`
+use, nested inside the wrapping container: a zero-height sticky element anchored at
+`top: 33vh` (so it never itself consumes layout space, it's purely an anchor point),
+holding its one child — the actual clipped, horizontally-animated ship — at that fixed
+viewport height for as long as the wrapping container has room left to scroll through.
+Verified by measurement at two different viewport heights (800px and 1200px): the ship's
+clipped box holds its `rect.top` within a fraction of a pixel across the whole scroll
+range, only releasing right at the very end as the container runs out of room, which is
+expected sticky behaviour, not a bug.
+
+The horizontal travel still needs clipping so it can never produce a page-level
+scrollbar (checked at narrow mobile widths specifically), and that clip is a
+**descendant** of this new sticky element, not an ancestor of it and never on the shared
+wrapping container itself — that container must never carry an `overflow` property on
+any axis, full stop, because `overflow` on any axis on an ancestor of a
 `position: sticky` element silently breaks that element's stickiness (`overflow-x` alone
 doesn't dodge it either — the CSS Overflow spec forces the other, unset axis from
 `visible` to `auto`, which breaks it just the same). This was a real, shipped bug from an
 earlier version where the divisions section — then a pinned sticky sequence — was nested
 inside this same wrapper; found by scroll-position instrumentation, not visual
-inspection. Divisions isn't nested in here at all any more (see below), but the rule
-stands regardless of what's ever added to this wrapper in future. See CLAUDE.md's
-"Scroll-linked vessel" section for the full story.
+inspection. Divisions isn't nested in here at all any more (see below), but the wrapping
+container now nests a *different* sticky element (the ship's own vertical-position
+anchor, above) — so the rule is immediately relevant again, not just future-proofing.
+Clipping on a descendant of the sticky element, rather than an ancestor, is what makes it
+safe: a descendant's `overflow` only ever affects its own children, never how its sticky
+ancestor gets positioned. See CLAUDE.md's "Scroll-linked vessel" section for the full
+story and the exact element structure.
 
 **About content**, below the hero, a two-column editorial grid at desktop widths —
 statement heading in the serif on the left, its own paragraph (capped near 62 characters)
@@ -150,13 +168,28 @@ accounts for the site header's height, plus 12px per card), so as the reader scr
 each subsequent card slides up and covers the one before it, leaving a ~12px sliver of it
 showing above — not a pinned/scroll-jacked sequence, and not a static three-column grid
 either. Per division, in order: number (01/02/03, gold, small, letter-spaced), name
-(serif, large), a one-line tagline (gold), a description (paper at ~0.78 opacity), and a
-"Visit division" link to that division's page (gold, underlined). Each card is a
-**solid** `navy-mid` panel — required for the stacking illusion, since a transparent card
-would let the one sliding up behind it show straight through instead of being covered —
-with a 1px gold border at 0.5 opacity (held to the 3:1 WCAG non-text guideline since it's
-a functional divider between cards, not decoration), 8px radius, generous padding, ~520px
-max-width, and a soft upward shadow so the stacking edge itself reads.
+(serif, large), a one-line tagline (gold), a description (paper at ~0.78 opacity, its own
+`60ch` measure cap independent of the card's width — see below), and a "Visit division"
+link to that division's page (gold, underlined). Each card is a **solid** `navy-mid`
+panel — required for the stacking illusion, since a transparent card would let the one
+sliding up behind it show straight through instead of being covered — with a 1px gold
+border at 0.5 opacity (held to the 3:1 WCAG non-text guideline since it's a functional
+divider between cards, not decoration), 8px radius, generous padding, and a soft upward
+shadow so the stacking edge itself reads.
+
+Cards are **full width**, spanning the whole `.wrap-wide` container as page-width panels
+— not the ~520px-capped block an earlier version used. The description keeps its own
+measure cap regardless (`60ch`), per the site's usual "cap the text, not the container"
+rule (§5) — a page-width panel isn't the same thing as page-width body text. Spacing
+between cards is a named `70vh` (viewport-relative, not a fixed pixel count), reached
+after an initial `80px` proved far too tight at real browser heights — the next card
+started covering the previous one almost immediately, before the reader had a chance to
+read it in full. Verified at both 800px and 1200px viewport heights that each card gets
+a genuinely static, fully-visible window before the next begins overlapping it. All
+three cards also share one fixed `min-height`, set to clear the tallest division's
+measured natural content height with a little room to spare — without it, the three
+cards' differing natural heights would make the 12px sliver offsets look accidental
+rather than a deliberate rhythm.
 
 This **replaced** an earlier pinned, scroll-linked sequence — a `requestAnimationFrame`
 loop, damped progress maths shared with the ship, a `height: 300vh` section, opacity/
