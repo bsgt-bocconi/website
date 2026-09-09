@@ -115,9 +115,14 @@ reasoning — don't re-introduce the CSS approach thinking it's a simplification
 via `IntersectionObserver` when off-screen; static at mid-travel, loop never started,
 under `prefers-reduced-motion`. Its opacity must be verified, not assumed, against AA
 contrast for whatever body copy it can sit behind — see the code comment in `index.astro`
-for the actual computed numbers. The wrapping container needs `overflow: hidden` so the
-animation's horizontal travel can never produce a page-level scrollbar, checked at narrow
-mobile widths specifically.
+for the actual computed numbers. The horizontal travel needs clipping so it can never
+produce a page-level scrollbar (checked at narrow mobile widths specifically), but that
+clip lives on its own small absolutely-positioned wrapper around just the ship, not on
+the shared container that also holds the divisions section — that container also hosts a
+`position: sticky` descendant (see below), and `overflow` on any axis on an ancestor of a
+sticky element silently breaks its stickiness. See CLAUDE.md's "Scroll-linked vessel"
+section for the full story — this was a real bug, found by scroll-position
+instrumentation, not visual inspection.
 
 **About content**, below the hero, a two-column editorial grid at desktop widths —
 statement heading in the serif on the left, its own paragraph (capped near 62 characters)

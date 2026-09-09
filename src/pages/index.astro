@@ -52,9 +52,11 @@ import { divisions } from '../data/divisions';
   </section>
 
   <div class="scroll-vessel-area on-dark">
-    <div class="scroll-vessel-position" aria-hidden="true">
-      <div class="scroll-vessel">
-        <VesselSilhouette />
+    <div class="scroll-vessel-clip" aria-hidden="true">
+      <div class="scroll-vessel-position">
+        <div class="scroll-vessel">
+          <VesselSilhouette />
+        </div>
       </div>
     </div>
 
@@ -619,9 +621,36 @@ import { divisions } from '../data/divisions';
     position: relative;
     background: var(--color-navy-deep);
     color: var(--color-paper);
-    /* Clips the vessel's horizontal travel — this, not the travel range
-       itself, is what guarantees no horizontal scrollbar at any width. */
+    /* No overflow property here — see .scroll-vessel-clip below for why.
+       Measured, not assumed: even `overflow-x: hidden` alone (leaving
+       overflow-y unset) broke .divisions-sticky's position:sticky
+       descendant just as completely as the shorthand did. Per the CSS
+       Overflow spec, an element's computed overflow-x and overflow-y
+       can't actually diverge to (hidden, visible) — if one axis computes
+       to something other than visible, the UA forces the other axis's
+       *computed* value from visible to auto, and auto is enough to
+       break sticky the same way hidden does. There is no overflow value
+       on this element, on any axis, that clips horizontally without
+       also disabling sticky for a descendant — confirmed with rect.top
+       instrumentation (.divisions-sticky's rect.top tracked its
+       non-sticky parent's exactly, at every scroll position, under both
+       the shorthand and the single-axis longhand). */
+  }
+
+  /* Clips the vessel's horizontal travel — the only reason
+     .scroll-vessel-area used to carry `overflow: hidden` itself. Pulled
+     out into its own absolutely-positioned, full-bleed layer instead of
+     living on .scroll-vessel-area, specifically so it's a sibling of
+     .divisions-section rather than an ancestor of .divisions-sticky —
+     see the comment on .scroll-vessel-area above for why that ancestry
+     matters. inset: 0 matches it to .scroll-vessel-area's own box exactly
+     (that area has no padding), so the clip boundary is unchanged. */
+  .scroll-vessel-clip {
+    position: absolute;
+    inset: 0;
     overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
   }
 
   .scroll-vessel-position {
@@ -633,8 +662,6 @@ import { divisions } from '../data/divisions';
     left: 50%;
     transform: translate(-50%, -50%);
     width: clamp(260px, 52vw, 720px);
-    pointer-events: none;
-    z-index: 0;
   }
 
   .scroll-vessel {
@@ -861,10 +888,21 @@ import { divisions } from '../data/divisions';
     position: sticky;
     top: 0;
     height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* .divisions-sticky's only DOM child is .wrap-wide (heading + stage +
+     indicator all live inside it) — flex:1 on .divisions-stage below only
+     does anything if THIS element is its flex parent. Measured, not
+     assumed: without this rule, .divisions-stage computed to height: 0
+     (an auto-height block whose only children are position:absolute, so
+     it has no in-flow content to size against), which put the blocks'
+     shared inset:0 anchor point wherever the heading happened to end
+     rather than centred in the sticky viewport. */
+  .is-pinned .divisions-sticky > .wrap-wide {
+    height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
   }
 
   .is-pinned .divisions-stage {

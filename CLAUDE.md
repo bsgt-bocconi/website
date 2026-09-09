@@ -71,12 +71,29 @@ because three blocks occupy the same visual space at once). A row of three thin
 horizontal rules beneath the blocks acts as a position indicator, opacity 0.2 rising to
 0.9 for the active block.
 
-Each block is an outlined panel (1px gold border at 0.42 opacity, 6px radius, ~520px
-max-width) containing, in order: a `01`/`02`/`03` number (gold, small, letter-spaced),
-the division name (serif), a gold tagline, a paper-at-0.78-opacity description, and a
-gold underlined "Visit division" link to its `/divisions/[slug]` page — gold is used
-more freely in this section than elsewhere on the page (tagline, number, and link all
-gold, not just the tagline), a deliberate change from that section's earlier styling.
+Each block is an outlined panel (1px gold border at 0.5 opacity — raised from an initial
+0.42, which fell under the 3:1 WCAG non-text-contrast guideline; treated as functional
+since it's what distinguishes one block's boundary from the next, not decoration, 6px
+radius, ~520px max-width) containing, in order: a `01`/`02`/`03` number (gold, small,
+letter-spaced), the division name (serif), a gold tagline, a paper-at-0.78-opacity
+description, and a gold underlined "Visit division" link to its `/divisions/[slug]` page
+— gold is used more freely in this section than elsewhere on the page (tagline, number,
+and link all gold, not just the tagline), a deliberate change from that section's
+earlier styling. Section heading is paper at 0.7 opacity, also raised from an initial
+0.55 for the same reason (AA margin too thin at 0.55).
+
+**Vertical centring relies on a flex chain that's easy to break by editing one link of
+it without the others.** `.divisions-sticky`'s only DOM child is `.wrap-wide` (heading +
+stage + indicator all live inside that one wrapper) — so `.is-pinned .divisions-sticky >
+.wrap-wide { display: flex; flex-direction: column; height: 100% }` is what turns
+`.divisions-stage`'s `flex: 1` into real height. Skip that rule and `.divisions-stage`
+computes to `height: 0` (an auto-height block whose only children are
+`position: absolute`, contributing nothing to its own height), which doesn't stop the
+blocks from being *visible* — their shared `inset: 0` anchor point just ends up wherever
+the heading happens to end, not centred in the sticky viewport. Verified by measurement
+(`getBoundingClientRect()` on the blocks at each one's peak-opacity scroll offset, not
+by eyeballing a screenshot), same instrumentation-first approach as the sticky bug two
+paragraphs up.
 
 **Fallbacks, required not optional, and all three collapse to one state**: under
 `prefers-reduced-motion`, under a ~600px-or-shorter viewport ("pinning on a short
@@ -196,8 +213,29 @@ it covers), so a busier drawing doesn't change the ratio, only how much text has
 to sit over it. See the code comment on `.scroll-vessel :global(svg)` in `index.astro`
 for the numbers; re-verify both tiers again if the opacity changes.
 
-`.scroll-vessel-area` needs `overflow: hidden` to guarantee no horizontal scrollbar from
-the animation's travel range, at any viewport width; don't remove it.
+The ship's horizontal travel needs clipping to guarantee no horizontal scrollbar from
+the animation's range, at any viewport width — but that clip lives on
+`.scroll-vessel-clip`, a small absolutely-positioned (`inset: 0`) wrapper around just
+`.scroll-vessel-position`, **not** on `.scroll-vessel-area` itself. This one is load-
+bearing: `.scroll-vessel-area` also contains `.divisions-section` → `.divisions-sticky`
+(a `position: sticky` element, see "Divisions" above), and putting `overflow: hidden` —
+or any non-default overflow, on either axis — on an ancestor between a sticky element
+and the viewport breaks that element's stickiness entirely. This was a real, shipped bug
+(diagnosed by scroll-position instrumentation, not inspection: `.divisions-sticky`'s
+`getBoundingClientRect().top` tracked its non-sticky parent's `top` exactly at every
+scroll offset — i.e. it never actually stuck, it just scrolled normally with the page).
+`overflow-x: hidden` alone doesn't dodge this either — per the CSS Overflow spec, an
+element can't have one axis compute to `hidden` and the other stay `visible`; if either
+axis is non-`visible`, the browser forces the *other* axis's computed value from
+`visible` to `auto`, which still breaks sticky. `.scroll-vessel-clip` sidesteps the whole
+problem structurally: it's a sibling of `.divisions-section`, not an ancestor of
+`.divisions-sticky`, so the clip and the sticky descendant no longer share a lineage.
+Don't move the horizontal clip back onto `.scroll-vessel-area` — re-verify with rect
+instrumentation, not visual inspection, if you ever touch this area, since a broken
+sticky can look deceptively close to working for the first block before silently failing
+for the rest (see "Divisions" above for why: the JS's own progress math is driven by the
+non-sticky `.divisions-section`'s rect and was correct the whole time the bug existed —
+only the visual pin was broken, which inspection of the animation math alone won't catch).
 
 ## Layout width: `.wrap` vs `.wrap-wide`
 
