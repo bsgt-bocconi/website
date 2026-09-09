@@ -91,17 +91,24 @@ rendering — the hero renders and starts its own fade-in immediately regardless
 overlay; the overlay is purely an additive layer on top of it. Skippable on click, scroll,
 or keypress. Entirely skipped (not just shortened) under `prefers-reduced-motion`.
 
-**Scroll-linked vessel.** A flat gold geometric vessel silhouette (`vessel-silhouette.svg`,
-not `vessel.jpg`) sits behind the About + carousel region — not the hero, which keeps the
+**Scroll-linked vessel.** A detailed gold vessel silhouette (`vessel-silhouette.svg`, not
+`vessel.jpg` — hull, bow, bridge, funnel, individual containers, masts; inlined in
+`VesselSilhouette.astro` so `currentColor` can set the gold via CSS, the same reason the
+mark is inlined) sits behind the About + carousel region — not the hero, which keeps the
 animated mark as its one moving element — and drifts horizontally as the page scrolls,
-reversing on scroll-up for free because it's scroll-*linked* (`animation-timeline:
-view()`, `@supports`-gated) rather than scroll-triggered. Browsers without that feature get
-a `CSS.supports`-feature-detected (never UA-sniffed) rAF-throttled, transform-only scroll
-listener producing the same effect. Static under `prefers-reduced-motion`. Its opacity must
-be verified, not assumed, against AA contrast for whatever body copy it can sit behind —
-see the code comment in `index.astro` for the actual computed numbers. The wrapping
-container needs `overflow: hidden` so the animation's horizontal travel can never produce a
-page-level scrollbar, checked at narrow mobile widths specifically.
+reversing on scroll-up for free because motion is driven by actual scroll position every
+frame, not a one-shot trigger. Driven by a single `requestAnimationFrame` loop with a
+damping/easing step (`current` eases toward a scroll-derived `target`) so it glides rather
+than jumping in the ~100px steps a mouse wheel actually scrolls in — deliberately **not**
+CSS `animation-timeline: scroll()`/`view()`, which was tried first and rejected because
+it can only bind straight to raw scroll position with no way to express that easing (see
+CLAUDE.md's "Scroll-linked vessel" section for the full reasoning — don't re-introduce the
+CSS approach thinking it's a simplification). Paused via `IntersectionObserver` when
+off-screen; static at mid-travel, loop never started, under `prefers-reduced-motion`. Its
+opacity must be verified, not assumed, against AA contrast for whatever body copy it can
+sit behind — see the code comment in `index.astro` for the actual computed numbers. The
+wrapping container needs `overflow: hidden` so the animation's horizontal travel can never
+produce a page-level scrollbar, checked at narrow mobile widths specifically.
 
 **About content**, below the hero, continuous prose rather than chopped into cards — see the
 copy in the repo (`src/pages/index.astro`) for the exact wording, which should be treated as
@@ -218,10 +225,15 @@ Supplied in `/brand`:
 - `vessel.jpg` — the first real photograph supplied for the site, used as the first slide
   of the homepage carousel. More photography will follow; until it does, the remaining
   carousel slides are clearly-marked placeholders (see §3).
-- `vessel-silhouette.svg` — a flat, geometric container-vessel silhouette in gold,
-  drawn to sit with the mast mark's visual language rather than as a detailed
-  illustration. Used as the scroll-linked background behind the About/carousel region
-  (see §3). Also copied to `public/` so it's servable by URL — keep both in sync.
+- `vessel-silhouette.svg` — a detailed container-vessel silhouette in gold (hull, bow,
+  bridge, funnel, individual containers, masts), currentColor-based. Used as the
+  scroll-linked background behind the About/carousel region (see §3). Inlined into
+  `src/components/VesselSilhouette.astro` rather than referenced by URL, so currentColor
+  works — that inlined copy is the one actually served; the copy under `public/` is kept
+  only for reference and isn't loaded by the site. If this file is edited, the inlined
+  component needs regenerating to match; the two aren't auto-synced. viewBox is
+  `"0 -36 920 202"` — the negative min-y is intentional (the radar mast sits above the
+  deck's y=0 origin); preserve it exactly.
 
 **The "BSGT" wordmark is live HTML text, not an image.** Set it in the heading serif
 alongside the mark. This keeps it sharp at all sizes, selectable, readable by screen

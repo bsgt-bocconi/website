@@ -50,23 +50,69 @@ timer reads this same custom property via `getComputedStyle` rather than having 
 hardcoded number — change the CSS value only, both the animation length and the timer
 follow it automatically.
 
-**Scroll-linked vessel**: `brand/vessel-silhouette.svg` (canonical, editable) /
-`public/vessel-silhouette.svg` (served copy — keep both in sync if it's edited), a flat
-gold geometric ship silhouette, sits behind the About + carousel region only (not the
-hero — that's the animated mark's territory, and not the recruiting block, which is its
-own closing section). Moves horizontally via `animation-timeline: view()`
-(`@supports`-gated) with a `CSS.supports`-feature-detected rAF-scroll-listener fallback
-for browsers without it — both paths track `.scroll-vessel`'s own box, not the taller
-`.scroll-vessel-area` wrapper, so they pace the same way; if you touch one, check the
-other still matches. Opacity is `0.2` (bumped up from an initial `0.08` once the region
-went from `paper` to `navy-deep` — gold reads properly on dark, which is what it's for)
-and is contrast-verified, not assumed: gold at that opacity blended into navy-deep, with
-paper body text over the worst case (directly over the densest part of the silhouette),
-computes to ~11.7:1 for full-opacity text and ~7.4:1 for the 0.75-opacity secondary
-tier — see the code comment on `.scroll-vessel img` in `index.astro` for the numbers,
-and re-verify both tiers (not just one) if the opacity changes again.
-`.scroll-vessel-area` needs `overflow: hidden` to guarantee no horizontal scrollbar
-from the animation's travel range; don't remove it.
+**Scroll-linked vessel**: `brand/vessel-silhouette.svg` (canonical, editable, detailed —
+hull, bow, bridge, funnel, individual containers, masts) / `public/vessel-silhouette.svg`
+(served copy, kept only for reference — the site itself no longer loads this file at
+runtime, see below). Sits behind the About + carousel region only, not the hero (that's
+the animated mark's territory) and not the recruiting block (its own closing section) —
+never more than one moving element in view at once.
+
+The SVG's `viewBox` is `"0 -36 920 202"` — the negative min-y is real, not a typo (the
+radar mast sits above the deck's y=0 origin). Preserve it exactly; changing it clips the
+mast.
+
+**Inlined, not `<img src>`.** It uses `fill="currentColor"` so gold can be set via CSS
+the same way `Mark.astro` does — which only works for SVG embedded directly in the page,
+not referenced by URL. `src/components/VesselSilhouette.astro` holds the inlined markup;
+if `brand/vessel-silhouette.svg` is ever edited, that component needs regenerating to
+match — the two are not auto-synced, and were verified byte-for-byte identical (every
+`<rect>`/`<path>`/`<ellipse>` and every coordinate) when the component was created. Don't
+hand-edit one without the other.
+
+**Motion: one continuous `requestAnimationFrame` loop, no CSS animation at all** (see
+`<script>` in `index.astro`, right after the intro-overlay script). Three named constants
+at the top of that script are the only values meant to need tuning:
+- `DAMPING = 0.35` — each frame, `current += (target - current) * DAMPING`.
+- `TRAVEL_VIEWPORTS = 3` — the 0→1 scroll progress driving `target` spans this many
+  viewport-heights of scrolling, measured from `.scroll-vessel-area`'s top.
+- `HORIZONTAL_RANGE_VW = 60` — `target` maps that progress to a translateX from `-60vw`
+  to `+60vw` around centre.
+
+`SETTLE_EPSILON_PX` (0.05) snaps `current` to `target` once the gap is negligible, so the
+loop doesn't ease toward a fixed point forever. Writes are `transform: translate3d(x, 0,
+0)` only, un-rounded (subpixel positioning is what keeps it smooth) — never anything that
+touches layout. `will-change: transform` is set in CSS on `.scroll-vessel`. An
+`IntersectionObserver` on `.scroll-vessel-area` starts/stops the rAF loop itself (not
+just its visual output) when the section leaves/enters the viewport. Under
+`prefers-reduced-motion`, the vessel is set to a static mid-travel transform once and the
+loop never starts at all.
+
+**Why not `animation-timeline: scroll()`/`view()`** — which is what an earlier version of
+this used, and looks like the obviously better choice (native, GPU-composited, no JS):
+tried, and rejected on purpose. CSS scroll-driven animation binds progress directly to
+raw scroll position, and a mouse wheel moves the page in discrete ~100px jumps — anything
+bound straight to that moves in visible steps rather than gliding. The damping in the
+loop above (easing `current` toward `target` over several frames rather than snapping
+directly to it) is what produces the glide, and there's no way to express that kind of
+easing in a scroll-driven CSS animation — it can only ever be direct scroll-to-progress
+mapping. **Don't "optimise" this back to CSS scroll-driven animation** — that's a
+regression, not a simplification, however native-and-JS-free it looks on paper. (The
+hero's own separate parallax effect, `.hero-mark-wrap`, still legitimately uses
+`animation-timeline: scroll(root)` as a small progressive enhancement — that one wasn't
+touched and isn't affected by this.)
+
+Opacity is `0.2`, contrast-verified (not assumed) against the worst case — paper body
+text sitting directly over the densest part of the silhouette: ~11.7:1 for full-opacity
+text, ~7.4:1 for the 0.75-opacity secondary tier, both clear of the 4.5:1 AA floor. This
+was re-checked, not just carried over, when the artwork changed from a simple silhouette
+to the current detailed one — the contrast math is a per-pixel colour computation
+(gold-at-0.2-blended-into-navy-deep is the same colour regardless of how much of the page
+it covers), so a busier drawing doesn't change the ratio, only how much text has a chance
+to sit over it. See the code comment on `.scroll-vessel :global(svg)` in `index.astro`
+for the numbers; re-verify both tiers again if the opacity changes.
+
+`.scroll-vessel-area` needs `overflow: hidden` to guarantee no horizontal scrollbar from
+the animation's travel range, at any viewport width; don't remove it.
 
 ## Light vs dark grounds — this is deliberate, not an inconsistency
 
@@ -125,10 +171,10 @@ Doesn't apply to "BSGT" itself, which is used freely in both contexts.
   their own. Currently three, all in `src/pages/index.astro` /
   `src/components/Carousel.astro`: the carousel's keyboard-arrow handling,
   the once-per-session intro-animation `sessionStorage` check, and the
-  scroll-linked vessel's fallback for browsers without
-  `animation-timeline: view()` (feature-detected via `CSS.supports`, not
-  UA-sniffed — see "Scroll-linked vessel" below). Don't add a fourth without
-  a real reason — CSS/native-HTML solves almost everything else on this site.
+  scroll-linked vessel's `requestAnimationFrame` motion loop (see
+  "Scroll-linked vessel" below — this one runs the whole effect itself now,
+  it isn't a fallback for a CSS path anymore). Don't add a fourth without a
+  real reason — CSS/native-HTML solves almost everything else on this site.
 
 ## Content model (see spec §4 for exact field types)
 

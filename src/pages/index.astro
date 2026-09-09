@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Mark from '../components/Mark.astro';
 import Carousel from '../components/Carousel.astro';
+import VesselSilhouette from '../components/VesselSilhouette.astro';
 ---
 
 <BaseLayout
@@ -51,7 +52,7 @@ import Carousel from '../components/Carousel.astro';
   <div class="scroll-vessel-area on-dark">
     <div class="scroll-vessel-position" aria-hidden="true">
       <div class="scroll-vessel">
-        <img src="/vessel-silhouette.svg" alt="" />
+        <VesselSilhouette />
       </div>
     </div>
 
@@ -142,50 +143,84 @@ import Carousel from '../components/Carousel.astro';
 </script>
 
 <script>
-  // Fallback for browsers without CSS scroll-driven animations
-  // (animation-timeline: view()) — feature-detected, not UA-sniffed. The
-  // @supports block in this page's <style> handles the modern path; this
-  // only runs when that path is unavailable.
-  const supportsViewTimeline = CSS.supports('animation-timeline: view()');
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Scroll-linked vessel motion. One rAF loop drives every browser — no
+  // animation-timeline: scroll()/view() and no separate fallback path.
+  // Why not CSS scroll-driven animation, which looks like the obviously
+  // better (native, JS-free) choice: it binds transform directly to raw
+  // scroll position, and a mouse wheel scrolls in ~100px steps, so
+  // anything bound directly to it moves in visible jumps rather than
+  // gliding. The damping below (current easing toward target every
+  // frame, not snapping to it) is what produces the glide, and CSS
+  // scroll-driven animation has no way to express that — it can only
+  // map scroll position straight to animation progress. Tested, and
+  // this is why it was rejected — don't "optimise" back to it.
 
-  if (!supportsViewTimeline && !prefersReducedMotion) {
-    const vessel = document.querySelector<HTMLElement>('.scroll-vessel');
+  // Tunable constants — the only three values this should need.
+  const DAMPING = 0.35;
+  const TRAVEL_VIEWPORTS = 3; // 0→1 travel spans this many viewport-heights of scroll
+  const HORIZONTAL_RANGE_VW = 60; // travels from -this to +this, in vw, around centre
 
-    if (vessel) {
-      let ticking = false;
+  const SETTLE_EPSILON_PX = 0.05; // |target - current| below this snaps instead of easing forever
 
-      // Tracks .scroll-vessel's own box, the same element the CSS
-      // view()-timeline animation targets — not the much taller
-      // .scroll-vessel-area it sits inside — so the two paths pace the
-      // same way. Mirrors the "cover" range a view() timeline uses: 0%
-      // when the element's top edge reaches the viewport's bottom edge
-      // (just entering), 100% when its bottom edge reaches the
-      // viewport's top edge (just finished leaving). Reading
-      // getBoundingClientRect() here is safe even though this same
-      // element is what gets the transform written to it below — the
-      // transform is horizontal-only (translateX), so it never affects
-      // the vertical top/height this calculation reads.
-      const update = () => {
-        const rect = vessel.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const total = rect.height + viewportHeight;
-        const traveled = viewportHeight - rect.top;
-        const progress = Math.min(1, Math.max(0, traveled / total));
-        const offsetVw = -15 + progress * 30;
-        vessel.style.transform = `translateX(${offsetVw}vw)`;
-        ticking = false;
+  const area = document.querySelector<HTMLElement>('.scroll-vessel-area');
+  const vessel = document.querySelector<HTMLElement>('.scroll-vessel');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (area && vessel) {
+    const rangePx = () => (HORIZONTAL_RANGE_VW / 100) * window.innerWidth;
+
+    if (reduceMotion) {
+      // Static at mid-travel. The loop below never starts.
+      vessel.style.transform = 'translate3d(0px, 0, 0)';
+    } else {
+      let sectionTop = 0;
+      let current = -rangePx();
+      let target = current;
+      let rafId: number | null = null;
+
+      const measure = () => {
+        sectionTop = area.getBoundingClientRect().top + window.scrollY;
       };
 
-      const onScroll = () => {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(update);
+      const frame = () => {
+        const travelDistance = TRAVEL_VIEWPORTS * window.innerHeight;
+        const progress = Math.min(1, Math.max(0, (window.scrollY - sectionTop) / travelDistance));
+        const range = rangePx();
+        target = -range + progress * (2 * range);
+
+        current += (target - current) * DAMPING;
+        if (Math.abs(target - current) < SETTLE_EPSILON_PX) current = target;
+
+        // No pixel rounding — subpixel positioning is what keeps this
+        // smooth. transform only, so this never touches layout.
+        vessel.style.transform = `translate3d(${current}px, 0, 0)`;
+        rafId = requestAnimationFrame(frame);
       };
 
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll, { passive: true });
-      update();
+      const start = () => {
+        if (rafId === null) rafId = requestAnimationFrame(frame);
+      };
+      const stop = () => {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      };
+
+      measure();
+      vessel.style.transform = `translate3d(${current}px, 0, 0)`;
+      window.addEventListener('resize', measure, { passive: true });
+
+      // Pauses the rAF loop entirely while the section is off-screen,
+      // rather than just skipping visual updates.
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) start();
+          else stop();
+        },
+        { threshold: 0 },
+      );
+      observer.observe(area);
     }
   }
 </script>
@@ -411,57 +446,48 @@ import Carousel from '../components/Carousel.astro';
 
   .scroll-vessel-position {
     position: absolute;
-    top: 50%;
+    /* ~33% down the viewport, 52% of viewport width clamped so it stays
+       sensible from phone to ultrawide — tuned in a 680px-wide prototype,
+       expressed here as the same proportions rather than fixed pixels. */
+    top: 33%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: clamp(320px, 55vw, 640px);
+    width: clamp(260px, 52vw, 720px);
     pointer-events: none;
     z-index: 0;
   }
 
-  .scroll-vessel img {
+  .scroll-vessel {
+    color: var(--color-gold);
+    /* Horizontal-only transform, written every frame by the script below.
+       will-change hints the browser to promote this to its own compositor
+       layer up front, rather than on the first animated frame. */
+    will-change: transform;
+  }
+
+  .scroll-vessel :global(svg) {
     display: block;
     width: 100%;
     height: auto;
     /*
-     * Opacity verified against AA, not assumed. Now that the ground here
-     * is navy-deep (not paper), gold reads at a genuinely visible strength
-     * without threatening contrast — gold-on-dark is what the token is
-     * for. Blending gold #F5C877 at 0.20 into navy-deep #070A1D gives a
-     * relative luminance of ~0.0312 for the blended patch. Checked both
-     * text tiers used on this ground against that worst-case (directly
-     * over the densest part of the silhouette):
+     * Opacity verified against AA, not assumed — and re-verified here
+     * specifically because the artwork changed (a much more detailed
+     * vessel replaced the simple silhouette this was first tuned for),
+     * even though the opacity value itself (0.2) didn't. The contrast
+     * math is a per-pixel colour computation — gold-at-0.2 blended into
+     * navy-deep is the same blended colour regardless of how much of the
+     * page that colour covers — so a bigger, busier ship doesn't change
+     * the ratio, only how much body text has a chance to sit over it.
+     * Re-checked both text tiers used on this ground against the
+     * worst case (text directly over the densest part of the
+     * silhouette):
      *   - full-opacity paper body text:        ~11.7:1
      *   - 0.75-opacity paper (secondary/meta):   ~7.4:1
-     * Both clear the 4.5:1 AA floor with wide margin. Don't push this much
+     * Both still clear the 4.5:1 AA floor with wide margin. Don't push
      * past ~0.25 without re-checking the dimmed-text case specifically —
      * it's the tighter of the two.
      */
     opacity: 0.2;
-  }
-
-  @supports (animation-timeline: view()) {
-    .scroll-vessel {
-      animation: vessel-scroll-x linear both;
-      animation-timeline: view();
-      animation-range: cover;
-    }
-  }
-
-  @keyframes vessel-scroll-x {
-    from {
-      transform: translateX(-15vw);
-    }
-    to {
-      transform: translateX(15vw);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .scroll-vessel {
-      animation: none !important;
-      transform: none !important;
-    }
   }
 
   /* About content — heading/paragraph sizing comes from .prose (global.css).
