@@ -35,7 +35,7 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
     <div class="hero-mark-wrap" aria-hidden="true">
       <Mark weight="fine" size={800} class="hero-mark" />
     </div>
-    <div class="hero-content wrap">
+    <div class="hero-content wrap-wide">
       <h1 class="slogan">Navigating the future of shipping &amp; maritime finance</h1>
       <p class="org-name">Bocconi Shipping &amp; Global Trade Student Association</p>
       <p class="founding">
@@ -57,40 +57,48 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
     </div>
 
     <section class="about-content">
-      <div class="wrap">
-        <div class="prose">
-          <h2>About us</h2>
+      <div class="wrap-wide">
+        <h2>About us</h2>
 
-          <h3>Where shipping meets finance.</h3>
-          <p>
-            We are standing at the threshold of major change — and where there is change, there
-            is opportunity. Shipping, at the heart of global trade, is no exception.
-            Geopolitical tensions, climate transition, new technologies and regulation are
-            reshaping the industry and, with it, the way maritime assets are financed, valued
-            and invested in.
-          </p>
+        <div class="about-grid">
+          <div class="about-pair">
+            <h3>Where shipping meets finance.</h3>
+            <p>
+              We are standing at the threshold of major change — and where there is change,
+              there is opportunity. Shipping, at the heart of global trade, is no exception.
+              Geopolitical tensions, climate transition, new technologies and regulation are
+              reshaping the industry and, with it, the way maritime assets are financed, valued
+              and invested in.
+            </p>
+          </div>
 
-          <h3>BSGT explores shipping through a financial lens.</h3>
-          <p>
-            We look at the markets and decisions behind the vessels: shipping finance, vessel
-            valuation, lending, capital markets, S&amp;P and M&amp;A, asset management,
-            chartering, risk and sustainable finance.
-          </p>
+          <div class="about-pair">
+            <h3>BSGT explores shipping through a financial lens.</h3>
+            <p>
+              We look at the markets and decisions behind the vessels: shipping finance, vessel
+              valuation, lending, capital markets, S&amp;P and M&amp;A, asset management,
+              chartering, risk and sustainable finance.
+            </p>
+          </div>
 
-          <h3>From Bocconi to the maritime industry.</h3>
-          <p>
-            We want to make shipping finance more accessible to students and bring the industry
-            closer to Bocconi. Through guest speakers, workshops, discussions, industry insights
-            and collaborative events, we connect students with professionals and real-world
-            perspectives.
-          </p>
+          <div class="about-pair">
+            <h3>From Bocconi to the maritime industry.</h3>
+            <p>
+              We want to make shipping finance more accessible to students and bring the
+              industry closer to Bocconi. Through guest speakers, workshops, discussions,
+              industry insights and collaborative events, we connect students with
+              professionals and real-world perspectives.
+            </p>
+          </div>
 
-          <h3>Curious about where capital meets the sea?</h3>
-          <p>
-            Whether you already know shipping or are discovering it for the first time, BSGT is
-            a place to learn, connect and explore an industry where finance, economics and
-            global trade come together.
-          </p>
+          <div class="about-pair">
+            <h3>Curious about where capital meets the sea?</h3>
+            <p>
+              Whether you already know shipping or are discovering it for the first time, BSGT
+              is a place to learn, connect and explore an industry where finance, economics and
+              global trade come together.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -99,7 +107,7 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
   </div>
 
   <section class="recruiting on-dark">
-    <div class="wrap">
+    <div class="wrap-wide">
       <p class="statement">Think beyond the vessel.</p>
       <a class="apply-btn" href="https://forms.gle/Ng2gsTbMKWgNvbAM7" target="_blank" rel="noopener">
         Apply
@@ -155,10 +163,13 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
   // map scroll position straight to animation progress. Tested, and
   // this is why it was rejected — don't "optimise" back to it.
 
-  // Tunable constants — the only three values this should need.
+  // Tunable constants.
   const DAMPING = 0.35;
-  const TRAVEL_VIEWPORTS = 3; // 0→1 travel spans this many viewport-heights of scroll
-  const HORIZONTAL_RANGE_VW = 60; // travels from -this to +this, in vw, around centre
+  // Not currently used by the active progress formula below (see frame()) —
+  // that formula maps the whole passage through the viewport directly, so
+  // this doesn't govern it. Kept declared, not deleted, in case a future
+  // pass wants a viewport-count-based cap again.
+  const TRAVEL_VIEWPORTS = 3;
 
   const SETTLE_EPSILON_PX = 0.05; // |target - current| below this snaps instead of easing forever
 
@@ -167,25 +178,41 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (area && vessel) {
-    const rangePx = () => (HORIZONTAL_RANGE_VW / 100) * window.innerWidth;
+    // Full crossing: the ship starts entirely off the left edge and ends
+    // entirely off the right. That requires knowing its own rendered
+    // width, not just a fixed vw guess — half of (viewport width + ship
+    // width) is how far the centred ship has to travel each direction to
+    // clear the corresponding edge completely. Recalculated on resize,
+    // not every frame — it only changes when the viewport or the ship's
+    // own (CSS-driven, responsive) width does.
+    let range = 0;
+    const measureRange = () => {
+      range = (window.innerWidth + vessel.offsetWidth) / 2;
+    };
 
     if (reduceMotion) {
       // Static at mid-travel. The loop below never starts.
       vessel.style.transform = 'translate3d(0px, 0, 0)';
     } else {
-      let sectionTop = 0;
-      let current = -rangePx();
-      let target = current;
+      let current = 0;
+      let target = 0;
       let rafId: number | null = null;
 
-      const measure = () => {
-        sectionTop = area.getBoundingClientRect().top + window.scrollY;
-      };
-
       const frame = () => {
-        const travelDistance = TRAVEL_VIEWPORTS * window.innerHeight;
-        const progress = Math.min(1, Math.max(0, (window.scrollY - sectionTop) / travelDistance));
-        const range = rangePx();
+        // Progress spans the section's whole passage through the
+        // viewport, starting the moment it first appears (not once it's
+        // fully in frame): 0 when the section's top edge just touches
+        // the viewport's bottom edge, 1 when its bottom edge just
+        // clears the viewport's top edge. Read fresh every frame —
+        // rect.top changes continuously as the page scrolls, and this
+        // read doesn't force layout since nothing here writes anything
+        // layout-affecting (transform only).
+        const rect = area.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const progress = Math.min(
+          1,
+          Math.max(0, (viewportHeight - rect.top) / (rect.height + viewportHeight)),
+        );
         target = -range + progress * (2 * range);
 
         current += (target - current) * DAMPING;
@@ -207,9 +234,11 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
         }
       };
 
-      measure();
+      measureRange();
+      current = -range;
+      target = current;
       vessel.style.transform = `translate3d(${current}px, 0, 0)`;
-      window.addEventListener('resize', measure, { passive: true });
+      window.addEventListener('resize', measureRange, { passive: true });
 
       // Pauses the rAF loop entirely while the section is off-screen,
       // rather than just skipping visual updates.
@@ -357,10 +386,15 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
   }
 
   .hero-content {
+    /* No max-width here — this is the wide, page-consistent container
+       (.wrap-wide) now. Left-aligned by default (no text-align set), so
+       widening it doesn't centre anything; it just moves the right edge
+       out. The slogan gets its own cap below so the headline itself
+       doesn't stretch edge-to-edge at 1200px; founding/mission already
+       had their own 36rem cap independent of this one. */
     position: relative;
     z-index: 1;
     padding-block: 6rem;
-    max-width: 46rem;
   }
 
   .slogan,
@@ -371,6 +405,7 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
   }
 
   .slogan {
+    max-width: 42rem;
     font-size: var(--text-3xl);
     color: var(--color-paper);
     animation: fade-in-up 0.9s ease-out 0.1s forwards;
@@ -490,33 +525,58 @@ import VesselSilhouette from '../components/VesselSilhouette.astro';
     opacity: 0.2;
   }
 
-  /* About content — heading/paragraph sizing comes from .prose (global.css).
-     Text colour itself is inherited from .scroll-vessel-area's `color:
-     paper` — .prose sets no colour of its own for headings/paragraphs, so
-     nothing extra is needed for those. .prose *does* set its own colour
-     for links and blockquotes (navy-deep and slate respectively, both
-     meant for the paper ground articles use), which would be invisible or
-     fail AA here, so those two get scoped overrides — defensive, since the
-     current About copy has neither, but a future edit might. */
+  /* About content. Text colour is inherited from .scroll-vessel-area's
+     `color: paper`. Not using .prose here — it's built for a single
+     vertical reading column (the article-page use case), and this is a
+     two-column editorial grid instead: each statement heading pairs with
+     its own paragraph, heading left / paragraph right, repeated per pair,
+     rather than one long flow. */
   .about-content {
     position: relative;
     z-index: 1;
     padding-block: 4rem;
   }
 
-  .about-content .prose a {
+  .about-grid {
+    margin-top: 2.5rem;
+  }
+
+  .about-pair {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+
+  .about-pair + .about-pair {
+    margin-top: 3rem;
+    padding-top: 3rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 20%, transparent);
+  }
+
+  .about-pair h3 {
+    font-size: var(--text-xl);
+    line-height: var(--leading-snug);
+  }
+
+  .about-pair p {
+    font-family: var(--font-serif);
+    font-size: var(--text-article);
+    line-height: var(--leading-relaxed);
+    max-width: 62ch;
+  }
+
+  .about-pair a {
     color: var(--color-gold);
   }
 
-  .about-content .prose blockquote {
-    color: var(--color-paper);
-    opacity: 0.85;
-  }
-
-  /* .prose h2 normally carries margin-top: 2em, but "About us" is the
-     section's first element and shouldn't have a gap above it. */
-  .about-content .prose > h2:first-child {
-    margin-top: 0;
+  /* Below this, the heading no longer needs to be narrower than its
+     paragraph — stack them, heading above paragraph. */
+  @media (max-width: 900px) {
+    .about-pair {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
   }
 
   /* Recruiting */

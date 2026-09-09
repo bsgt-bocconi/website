@@ -194,6 +194,18 @@ a {
   padding-inline: 1.5rem;
 }
 
+/* Wider variant for association-facing (dark-ground) pages/sections that
+   need to use more of the page width than a reading column should —
+   homepage, /team, /events. Deliberately separate from .wrap rather than
+   widening it: .wrap is also the reading-measure container on article
+   pages, and those must not get wider. */
+.wrap-wide {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

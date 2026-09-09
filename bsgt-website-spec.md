@@ -95,24 +95,34 @@ or keypress. Entirely skipped (not just shortened) under `prefers-reduced-motion
 `vessel.jpg` — hull, bow, bridge, funnel, individual containers, masts; inlined in
 `VesselSilhouette.astro` so `currentColor` can set the gold via CSS, the same reason the
 mark is inlined) sits behind the About + carousel region — not the hero, which keeps the
-animated mark as its one moving element — and drifts horizontally as the page scrolls,
-reversing on scroll-up for free because motion is driven by actual scroll position every
-frame, not a one-shot trigger. Driven by a single `requestAnimationFrame` loop with a
-damping/easing step (`current` eases toward a scroll-derived `target`) so it glides rather
-than jumping in the ~100px steps a mouse wheel actually scrolls in — deliberately **not**
-CSS `animation-timeline: scroll()`/`view()`, which was tried first and rejected because
-it can only bind straight to raw scroll position with no way to express that easing (see
-CLAUDE.md's "Scroll-linked vessel" section for the full reasoning — don't re-introduce the
-CSS approach thinking it's a simplification). Paused via `IntersectionObserver` when
-off-screen; static at mid-travel, loop never started, under `prefers-reduced-motion`. Its
-opacity must be verified, not assumed, against AA contrast for whatever body copy it can
-sit behind — see the code comment in `index.astro` for the actual computed numbers. The
-wrapping container needs `overflow: hidden` so the animation's horizontal travel can never
-produce a page-level scrollbar, checked at narrow mobile widths specifically.
+animated mark as its one moving element — and drifts horizontally as the page scrolls, a
+full crossing (starts entirely off the left edge, ends entirely off the right — the
+travel range is computed from the viewport's and the ship's own rendered width, not a
+fixed guess), reversing on scroll-up for free because motion is driven by actual scroll
+position every frame, not a one-shot trigger. Progress starts the moment the section
+first enters the viewport, not once it's fully in frame, and spans its entire passage
+through — see CLAUDE.md's "Scroll-linked vessel" section for the exact formula. Driven by
+a single `requestAnimationFrame` loop with a damping/easing step (`current` eases toward
+a scroll-derived `target`) so it glides rather than jumping in the ~100px steps a mouse
+wheel actually scrolls in — deliberately **not** CSS `animation-timeline:
+scroll()`/`view()`, which was tried first and rejected because it can only bind straight
+to raw scroll position with no way to express that easing (see CLAUDE.md for the full
+reasoning — don't re-introduce the CSS approach thinking it's a simplification). Paused
+via `IntersectionObserver` when off-screen; static at mid-travel, loop never started,
+under `prefers-reduced-motion`. Its opacity must be verified, not assumed, against AA
+contrast for whatever body copy it can sit behind — see the code comment in `index.astro`
+for the actual computed numbers. The wrapping container needs `overflow: hidden` so the
+animation's horizontal travel can never produce a page-level scrollbar, checked at narrow
+mobile widths specifically.
 
-**About content**, below the hero, continuous prose rather than chopped into cards — see the
-copy in the repo (`src/pages/index.astro`) for the exact wording, which should be treated as
-fixed unless BSGT itself asks for a copy change; don't silently rewrite it.
+**About content**, below the hero, a two-column editorial grid at desktop widths —
+statement heading in the serif on the left, its own paragraph (capped near 62 characters)
+on the right, repeated per heading/paragraph pair, stacking to one column below ~900px —
+rather than one long column of prose or cards. Container is the wide, page-consistent
+`.wrap-wide` (§5), not the narrow reading-measure `.wrap`; the text within it still keeps
+its own measure. See the copy in the repo (`src/pages/index.astro`) for the exact
+wording, which should be treated as fixed unless BSGT itself asks for a copy change;
+don't silently rewrite it.
 
 **Image carousel.** A CSS scroll-snap carousel (no library), swipeable and keyboard-arrow
 navigable, that must not trap focus. Slides are a content collection (§4) with the same
@@ -317,6 +327,15 @@ Left-aligned, single strong column for reading content. Asymmetric rather than c
 centred everything is the association-website default. Structural devices (rules, dividers)
 should encode real information: a gold hairline separating article metadata from body earns
 its place; decorative dividers do not.
+
+Two container widths, not one: `.wrap` (1152px) is the reading-measure container — article
+pages, and anything else meant to be read start to finish — and must not widen. `.wrap-wide`
+(1200px) is the association-facing container — the homepage, `/team`, `/events` — for pages
+that are chrome (identity, listings, recruiting) rather than long-form reading, where the
+narrower container read as an unfinished, floating strip in the middle of a full-width dark
+page. Widening the *container* doesn't mean leaving *text* unconstrained inside it — cap the
+measure on the text itself (a paragraph, a heading, a description) wherever reading comfort
+still matters, the same as on `.wrap` pages.
 
 Motion: one deliberate moment at most — **except the homepage**, which carries two scoped,
 intentional exceptions: the hero (ambient mark animation, intro sequence, staggered content

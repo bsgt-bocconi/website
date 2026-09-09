@@ -70,22 +70,35 @@ match — the two are not auto-synced, and were verified byte-for-byte identical
 hand-edit one without the other.
 
 **Motion: one continuous `requestAnimationFrame` loop, no CSS animation at all** (see
-`<script>` in `index.astro`, right after the intro-overlay script). Three named constants
-at the top of that script are the only values meant to need tuning:
-- `DAMPING = 0.35` — each frame, `current += (target - current) * DAMPING`.
-- `TRAVEL_VIEWPORTS = 3` — the 0→1 scroll progress driving `target` spans this many
-  viewport-heights of scrolling, measured from `.scroll-vessel-area`'s top.
-- `HORIZONTAL_RANGE_VW = 60` — `target` maps that progress to a translateX from `-60vw`
-  to `+60vw` around centre.
+`<script>` in `index.astro`, right after the intro-overlay script).
 
-`SETTLE_EPSILON_PX` (0.05) snaps `current` to `target` once the gap is negligible, so the
-loop doesn't ease toward a fixed point forever. Writes are `transform: translate3d(x, 0,
-0)` only, un-rounded (subpixel positioning is what keeps it smooth) — never anything that
-touches layout. `will-change: transform` is set in CSS on `.scroll-vessel`. An
-`IntersectionObserver` on `.scroll-vessel-area` starts/stops the rAF loop itself (not
-just its visual output) when the section leaves/enters the viewport. Under
-`prefers-reduced-motion`, the vessel is set to a static mid-travel transform once and the
-loop never starts at all.
+**Horizontal range is computed, not a fixed constant** — `range = (window.innerWidth +
+vessel.offsetWidth) / 2`, recalculated on resize (not every frame). This is what makes
+the crossing "full": the ship starts entirely off the left edge and ends entirely off the
+right, however wide the viewport or the ship's own (responsive, `clamp()`-based) width
+happen to be. If you want a *partial* crossing again, that's a deliberate different
+design, not a tuning tweak — don't just clamp the computed range down; ask first.
+
+**Progress is derived from the section's whole passage through the viewport, not a fixed
+scroll distance**: `progress = (viewportHeight - rect.top) / (rect.height +
+viewportHeight)`, clamped 0–1, where `rect` is `.scroll-vessel-area`'s live
+`getBoundingClientRect()` read fresh every frame (not cached — it has to change
+continuously as the page scrolls, unlike the range above). 0 is the section's top edge
+just touching the viewport's bottom edge (motion starts the moment it first appears, not
+once it's fully in frame); 1 is its bottom edge just clearing the viewport's top edge.
+`TRAVEL_VIEWPORTS` (3) is declared but **not used by this formula** — kept for a possible
+future pass, not deleted, per an explicit ask to keep it available; don't assume it's
+wired up anywhere just because it's declared.
+
+`DAMPING` (0.35) is the only motion-feel constant left: each frame, `current += (target -
+current) * DAMPING`. `SETTLE_EPSILON_PX` (0.05) snaps `current` to `target` once the gap
+is negligible, so the loop doesn't ease toward a fixed point forever. Writes are
+`transform: translate3d(x, 0, 0)` only, un-rounded (subpixel positioning is what keeps it
+smooth) — never anything that touches layout. `will-change: transform` is set in CSS on
+`.scroll-vessel`. An `IntersectionObserver` on `.scroll-vessel-area` starts/stops the rAF
+loop itself (not just its visual output) when the section leaves/enters the viewport.
+Under `prefers-reduced-motion`, the vessel is set to a static mid-travel transform once
+and the loop never starts at all.
 
 **Why not `animation-timeline: scroll()`/`view()`** — which is what an earlier version of
 this used, and looks like the obviously better choice (native, GPU-composited, no JS):
@@ -113,6 +126,35 @@ for the numbers; re-verify both tiers again if the opacity changes.
 
 `.scroll-vessel-area` needs `overflow: hidden` to guarantee no horizontal scrollbar from
 the animation's travel range, at any viewport width; don't remove it.
+
+## Layout width: `.wrap` vs `.wrap-wide`
+
+Two container utilities in `global.css`, both `margin-inline: auto` + `padding-inline:
+1.5rem`, differing only in `max-width`:
+- **`.wrap`** — 72rem (1152px). The reading-measure container. Used on article pages and
+  anywhere else text is meant to be read start to finish. **Never widen this one** — it's
+  shared sitewide, including by the pages that must stay narrow (see "Light vs dark
+  grounds" below).
+- **`.wrap-wide`** — 75rem (1200px). The association-facing container: homepage (hero,
+  About, carousel, recruiting all use it now), `/team`, `/events`. Exists specifically so
+  widening those pages doesn't touch `.wrap` and therefore doesn't touch articles.
+
+Within `.wrap-wide`, cap the *text*, not the container, wherever a reading measure still
+matters — e.g. the homepage's `.about-pair p` at `62ch`, the hero's `.slogan` at `42rem`,
+`EventItem`'s `.description` at `var(--measure)`. A wide container with unconstrained text
+inside it is a readability regression, not a fix; a wide container with the text still
+properly capped just gives the surrounding page (dividers, grids, whitespace) room to use
+that width instead of floating as a narrow strip in the middle of a full-width dark page —
+that was the actual bug this fixed, not the measure itself, which was already right.
+
+The homepage's About section is a two-column editorial grid at desktop widths
+(`.about-grid` / `.about-pair`, `grid-template-columns: 1fr 2fr` — heading left, its own
+paragraph right, repeated once per heading/paragraph pair — not one heading column plus
+one paragraph column for the whole section), stacking to a single column below 900px.
+`/team`'s and `/events`' fixes were narrower: widen the container, drop `max-width`
+constraints that were capping short non-reading elements (page headers, the team grid,
+the event-section wrapper) for no real reason, and leave the actual per-item reading text
+(`EventItem`'s `.description`) capped as it already was.
 
 ## Light vs dark grounds — this is deliberate, not an inconsistency
 

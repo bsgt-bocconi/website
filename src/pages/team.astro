@@ -13,7 +13,7 @@ const members = (
   description="The committee of the Bocconi Shipping and Global Trade Student Association."
 >
   <div class="team-page on-dark">
-    <div class="wrap">
+    <div class="wrap-wide">
       <header class="page-header">
         <h1>The Team</h1>
         <p class="dek">The committee behind BSGT's lectures, workshops, articles, and events.</p>
@@ -48,7 +48,9 @@ const members = (
   }
 
   .page-header {
-    max-width: var(--measure);
+    /* No measure cap — "The Team" plus one short line isn't a reading
+       column, and capping it at 68ch left it floating narrow above a
+       wide grid. Let it use the same wrap-wide width as the grid below. */
     margin-bottom: 2.5rem;
   }
 
@@ -68,7 +70,9 @@ const members = (
     margin: 0;
     padding: 0;
     list-style: none;
-    max-width: 60rem;
+    /* No cap here either — auto-fill naturally adds more columns as the
+       wrap-wide container gets wider, which is the right way to use the
+       extra space (more cards per row, not one stretched narrow strip). */
   }
 
   .empty {

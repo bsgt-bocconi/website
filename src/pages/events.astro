@@ -22,7 +22,7 @@ const past = events
   description="Upcoming and past guest lectures, workshops, and socials from BSGT."
 >
   <div class="events-page on-dark">
-    <div class="wrap">
+    <div class="wrap-wide">
       <header class="page-header">
         <h1>Events</h1>
       </header>
@@ -71,11 +71,16 @@ const past = events
   }
 
   .page-header {
-    max-width: var(--measure);
+    /* No measure cap — see team.astro's page-header for the same fix and
+       reasoning: a short heading isn't a reading column. */
   }
 
   .event-section {
-    max-width: var(--measure);
+    /* No measure cap on the section/list itself either — each
+       EventItem's own .description keeps its max-width: var(--measure)
+       for the actual reading text, so removing the cap here just lets
+       the surrounding list/dividers use the wrap-wide width instead of
+       floating as a narrow strip. */
     margin-top: 3rem;
   }
 
