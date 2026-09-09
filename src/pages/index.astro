@@ -128,6 +128,7 @@ import { divisions } from '../data/divisions';
             </div>
           ))
         }
+        <div class="divisions-tail" aria-hidden="true" />
       </div>
     </div>
   </section>
@@ -524,23 +525,24 @@ import { divisions } from '../data/divisions';
     color: var(--color-paper);
   }
 
-  /* Holds the ship at a constant height in the viewport — ~33vh down —
-     for the whole time .scroll-vessel-area has room left to scroll
-     through, rather than letting it scroll up and off with the rest of
-     the hero/About content the way an absolutely-positioned layer
-     would. height: 0 so this element never itself consumes layout space
-     (it isn't part of the hero/About reading flow, just an anchor point
-     its child hangs off); the child's own rendered size still paints
-     normally, since overflow is untouched here (default visible) — only
-     .scroll-vessel-clip below, a descendant, actually clips anything.
-     That ordering is the whole point: overflow on an ANCESTOR of a
-     position: sticky element disables its stickiness (see the comment on
-     .scroll-vessel-area above, and CLAUDE.md, for the bug this already
-     caused once); overflow on a DESCENDANT of one doesn't touch the
-     sticky element's own positioning at all, so clipping here is safe. */
+  /* Holds the ship at a constant height in the viewport — the vertical
+     middle, 50vh down — for the whole time .scroll-vessel-area has room
+     left to scroll through, rather than letting it scroll up and off
+     with the rest of the hero/About content the way an
+     absolutely-positioned layer would. height: 0 so this element never
+     itself consumes layout space (it isn't part of the hero/About
+     reading flow, just an anchor point its child hangs off); the
+     child's own rendered size still paints normally, since overflow is
+     untouched here (default visible) — only .scroll-vessel-clip below, a
+     descendant, actually clips anything. That ordering is the whole
+     point: overflow on an ANCESTOR of a position: sticky element
+     disables its stickiness (see the comment on .scroll-vessel-area
+     above, and CLAUDE.md, for the bug this already caused once);
+     overflow on a DESCENDANT of one doesn't touch the sticky element's
+     own positioning at all, so clipping here is safe. */
   .scroll-vessel-sticky {
     position: sticky;
-    top: 33vh;
+    top: 50vh;
     height: 0;
     z-index: 0;
     pointer-events: none;
@@ -700,7 +702,13 @@ import { divisions } from '../data/divisions';
   .divisions-section {
     background: var(--color-navy-deep);
     color: var(--color-paper);
-    padding-block: 4rem 8rem;
+    /* Symmetric now — the extra bottom padding an earlier version carried
+       here was standing in for what the last card actually needed: real
+       trailing space to hold its own sticky position (see
+       .division-card's margin-bottom below, applied to every card
+       including the last). That's what provides the room now, so this
+       doesn't need to any more. */
+    padding-block: 4rem;
   }
 
   .divisions-heading {
@@ -779,6 +787,30 @@ import { divisions } from '../data/divisions';
 
   .division-card:not(:last-child) {
     margin-bottom: var(--card-gap);
+  }
+
+  /* Gives the LAST card real trailing space to hold its own sticky
+     position — without this, it has nothing after it, so it hits its
+     `top` offset at the exact instant .divisions-stack runs out of room
+     and releases immediately: diagnosed by measurement, not assumed
+     (a full scroll sweep showed the last card's rect.top never held
+     constant even once, moving exactly 1:1 with scroll throughout, with
+     its distance to the section's bottom edge staying a fixed 128px —
+     .divisions-section's old padding-bottom — the whole time; it was
+     permanently in plain, unstuck flow). A first attempt gave the last
+     card its own margin-bottom equal to --card-gap instead of a real
+     sibling — measurably wrong in a different way: that margin collapses
+     straight through .divisions-stack's bottom edge (a block with no
+     padding/border of its own doesn't contain a child's trailing margin
+     — ordinary CSS margin collapsing), so it never became real height
+     inside the container the sticky calculation runs against, and the
+     card still released almost immediately. A genuine block-level
+     sibling with real height doesn't have that problem — this is a
+     component of layout space, not a spacing value, hence `height`,
+     not `margin`. aria-hidden and empty: carries no content of its own,
+     purely structural. */
+  .divisions-tail {
+    height: var(--card-gap);
   }
 
   .block-number {

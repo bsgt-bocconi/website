@@ -87,6 +87,34 @@ Without this, the three cards' differing natural heights would make the 12px sli
 offsets look like a layout accident rather than a deliberate rhythm. Re-measure both
 figures if the copy in `src/data/divisions.ts` changes meaningfully in length.
 
+**The last card needs its own trailing space, and it can't just be that card's own
+`margin-bottom`.** `.divisions-stack` renders `<div class="divisions-tail" aria-hidden
+="true" />` after the three cards, styled with `height: var(--card-gap)` — a genuine,
+empty block-level sibling, not a spacing value on the last card itself. Diagnosed by
+measurement in two stages, not assumed at either: **(1)** with no trailing space at all,
+a full scroll sweep showed the last card's `rect.top` never held constant even once — it
+moved exactly 1:1 with scroll throughout, and its distance to the section's bottom edge
+stayed a fixed 128px (the section's old `padding-bottom`) the whole time, meaning it was
+permanently in plain, unstuck flow, hitting its `top` offset at the exact instant the
+container ran out of room and releasing instantly, before ever holding. **(2)** The first
+attempted fix — giving the last card `margin-bottom: var(--card-gap)` the same as the
+other two — measurably didn't work either, for a different reason: that trailing margin
+collapses straight through `.divisions-stack`'s own bottom edge (an ordinary block with
+no padding or border of its own doesn't contain a child's trailing margin — standard CSS
+margin collapsing, not a bug), so it never became real height inside the container the
+sticky calculation runs against; the card still released almost immediately. A real
+sibling with an explicit `height` doesn't have that problem. Verified after switching to
+`.divisions-tail`: all three cards now hold a comparable, genuinely static `rect.top` —
+Events ~2261px of scroll at 800px viewport height / ~3104px at 1200px, Research ~1391px /
+~1954px, Marketing ~435px / ~805px (shorter than the other two, since it's still the last
+card and there's nothing after *it* to be covered by — but no longer near-zero, which is
+what mattered). Don't try `display: flow-root` (or any other block-formatting-context
+trick) on `.divisions-stack` as an alternative to the spacer — it was tried, it does stop
+the margin-collapse-through, but the last card's held window was still far shorter than
+the other two's for a different, not-fully-diagnosed reason tied to how multiple sticky
+siblings share one containing block's remaining scroll room; the real sibling spacer is
+the version that was actually verified to work, so it's the one to keep.
+
 This **replaced** an earlier JS-driven pinned sequence (a `requestAnimationFrame` loop,
 damped progress maths shared with the vessel via `DAMPING` in `src/lib/motion.ts`,
 `BAND`/`TRAVEL` constants, a `height: 300vh` section, a pip position-indicator, a
@@ -241,7 +269,7 @@ separate `position: sticky` use on this page, structurally nested inside
 
 ```
 .scroll-vessel-area          plain block — no overflow, no position property at all
-  .scroll-vessel-sticky      position: sticky; top: 33vh; height: 0
+  .scroll-vessel-sticky      position: sticky; top: 50vh; height: 0
     .scroll-vessel-clip      overflow: hidden; width: 100%; transform: translateY(-50%)
       .scroll-vessel-position  margin-inline: auto; width: clamp(...) — horizontal centring only
         .scroll-vessel         JS writes transform: translate3d(x, 0, 0) here, every frame
@@ -252,17 +280,18 @@ layer directly inside `.scroll-vessel-area` — which meant the ship scrolled up
 with the rest of the hero/About content instead of holding its vertical position, since
 nothing was actually pinning it. `.scroll-vessel-sticky` fixes that: `height: 0` so it
 never itself consumes layout space (it isn't part of the hero/About reading flow, just an
-anchor point its one child hangs off of), `top: 33vh` so it sticks a third of the way
-down the viewport for as long as `.scroll-vessel-area` (its containing block) has room
-left to scroll through — verified by measurement, not assumed: `.scroll-vessel-clip`'s
-`rect.top` holds within a fraction of a pixel across the whole hero+About scroll range at
-both 800px and 1200px viewport heights, only releasing right at the very end as
-`.scroll-vessel-area` runs out of room, which is correct sticky behaviour, not a bug.
-`.scroll-vessel-clip`'s `transform: translateY(-50%)` centres it vertically *on* that
-33vh anchor point (shifting the whole clipped box up by half its own rendered height)
-rather than pinning its top edge there — the same visual centring the old
+anchor point its one child hangs off of), `top: 50vh` so it sticks at the vertical middle
+of the viewport for as long as `.scroll-vessel-area` (its containing block) has room left
+to scroll through — `50vh` after an initial `33vh` sat too high, per explicit feedback.
+Verified by measurement, not assumed: `.scroll-vessel-clip`'s `rect.top` holds within a
+fraction of a pixel across the whole hero+About scroll range at both 800px and 1200px
+viewport heights, only releasing right at the very end as `.scroll-vessel-area` runs out
+of room, which is correct sticky behaviour, not a bug. `.scroll-vessel-clip`'s
+`transform: translateY(-50%)` centres it vertically *on* that 50vh anchor point (shifting
+the whole clipped box up by half its own rendered height) rather than pinning its top
+edge there — the same visual centring the very first version's
 `top: 33%; translate(-50%, -50%)` approach gave the ship, just expressed on the box that
-now actually determines what's visible.
+now actually determines what's visible, and now anchored at 50vh instead of 33%.
 
 **This changes which element the horizontal-clip rule applies to, and makes the
 "never add `overflow` to `.scroll-vessel-area`" rule immediately load-bearing again, not

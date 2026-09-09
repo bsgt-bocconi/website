@@ -121,17 +121,18 @@ under `prefers-reduced-motion`. Its opacity must be verified, not assumed, again
 contrast for whatever body copy it can sit behind — see the code comment in `index.astro`
 for the actual computed numbers.
 
-The ship also **holds a constant vertical position** — about a third of the way down the
+The ship also **holds a constant vertical position** — the vertical middle of the
 viewport — for the whole hero+About passage, moving only horizontally, rather than
 scrolling up and off with the rest of the content. This is a second `position: sticky`
 use, nested inside the wrapping container: a zero-height sticky element anchored at
-`top: 33vh` (so it never itself consumes layout space, it's purely an anchor point),
-holding its one child — the actual clipped, horizontally-animated ship — at that fixed
-viewport height for as long as the wrapping container has room left to scroll through.
-Verified by measurement at two different viewport heights (800px and 1200px): the ship's
-clipped box holds its `rect.top` within a fraction of a pixel across the whole scroll
-range, only releasing right at the very end as the container runs out of room, which is
-expected sticky behaviour, not a bug.
+`top: 50vh` (so it never itself consumes layout space, it's purely an anchor point —
+raised from an initial `33vh`, which sat too high, per explicit feedback), holding its
+one child — the actual clipped, horizontally-animated ship — at that fixed viewport
+height for as long as the wrapping container has room left to scroll through. Verified by
+measurement at two different viewport heights (800px and 1200px): the ship's clipped box
+holds its `rect.top` within a fraction of a pixel across the whole scroll range, only
+releasing right at the very end as the container runs out of room, which is expected
+sticky behaviour, not a bug.
 
 The horizontal travel still needs clipping so it can never produce a page-level
 scrollbar (checked at narrow mobile widths specifically), and that clip is a
@@ -190,6 +191,18 @@ three cards also share one fixed `min-height`, set to clear the tallest division
 measured natural content height with a little room to spare — without it, the three
 cards' differing natural heights would make the 12px sliver offsets look accidental
 rather than a deliberate rhythm.
+
+The last card needs its own dedicated trailing space after it, and — measured, not
+assumed — that space has to be a real empty sibling element, not a margin on the card
+itself. Without any trailing space, the last card never held its sticky position at all;
+giving it its own `margin-bottom` equal to the same gap looked like the obvious fix but
+measurably wasn't one, because a block with no padding or border of its own doesn't
+contain its last child's trailing margin (ordinary CSS margin collapsing) — the margin
+never became real height inside the container the sticky calculation runs against, so the
+card still released almost immediately. A plain, empty, `aria-hidden` block after all
+three cards, given an explicit `height` equal to the gap, is what actually works —
+verified afterward that all three cards hold a comparable, genuinely static position, not
+just the first two.
 
 This **replaced** an earlier pinned, scroll-linked sequence — a `requestAnimationFrame`
 loop, damped progress maths shared with the ship, a `height: 300vh` section, opacity/
