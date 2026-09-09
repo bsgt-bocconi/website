@@ -33,24 +33,6 @@ import { divisions } from '../data/divisions';
     </div>
   </div>
 
-  <section class="hero on-dark">
-    <div class="hero-mark-wrap" aria-hidden="true">
-      <Mark weight="fine" size={800} class="hero-mark" />
-    </div>
-    <div class="hero-content wrap-wide">
-      <h1 class="slogan">Navigating the future of shipping &amp; maritime finance</h1>
-      <p class="org-name">Bocconi Shipping &amp; Global Trade Student Association</p>
-      <p class="founding">
-        Founded by a group of 11 driven students and supported by an international
-        professional network, July 2026
-      </p>
-      <p class="mission">
-        Bridging the gap between the Bocconi student community and the shipping finance
-        industry.
-      </p>
-    </div>
-  </section>
-
   <div class="scroll-vessel-area on-dark">
     <div class="scroll-vessel-clip" aria-hidden="true">
       <div class="scroll-vessel-position">
@@ -59,6 +41,24 @@ import { divisions } from '../data/divisions';
         </div>
       </div>
     </div>
+
+    <section class="hero">
+      <div class="hero-mark-wrap" aria-hidden="true">
+        <Mark weight="fine" size={800} class="hero-mark" />
+      </div>
+      <div class="hero-content wrap-wide">
+        <h1 class="slogan">Navigating the future of shipping &amp; maritime finance</h1>
+        <p class="org-name">Bocconi Shipping &amp; Global Trade Student Association</p>
+        <p class="founding">
+          Founded by a group of 11 driven students and supported by an international
+          professional network, July 2026
+        </p>
+        <p class="mission">
+          Bridging the gap between the Bocconi student community and the shipping finance
+          industry.
+        </p>
+      </div>
+    </section>
 
     <section class="about-content">
       <div class="wrap-wide">
@@ -106,39 +106,31 @@ import { divisions } from '../data/divisions';
         </div>
       </div>
     </section>
-
-    <section class="divisions-section">
-      <div class="divisions-sticky">
-        <div class="wrap-wide">
-          <h2 class="divisions-heading">One vision, supported by three divisions</h2>
-
-          <div class="divisions-stage">
-            {
-              divisions.map((division, i) => (
-                <div class="division-slot">
-                  <div class="division-block">
-                    <span class="block-number">{String(i + 1).padStart(2, '0')}</span>
-                    <h3>{division.name}</h3>
-                    <p class="tagline">{division.tagline}</p>
-                    <p class="description">{division.description}</p>
-                    <a class="visit-link" href={`/divisions/${division.slug}`}>
-                      Visit division
-                    </a>
-                  </div>
-                </div>
-              ))
-            }
-          </div>
-
-          <div class="divisions-indicator" aria-hidden="true">
-            {divisions.map(() => <span class="indicator-rule" />)}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <Carousel />
   </div>
+
+  <section class="divisions-section on-dark">
+    <div class="wrap-wide">
+      <h2 class="divisions-heading">One vision, supported by three divisions</h2>
+
+      <div class="divisions-stack">
+        {
+          divisions.map((division, i) => (
+            <div class="division-card" style={{ '--i': i }}>
+              <span class="block-number">{String(i + 1).padStart(2, '0')}</span>
+              <h3>{division.name}</h3>
+              <p class="tagline">{division.tagline}</p>
+              <p class="description">{division.description}</p>
+              <a class="visit-link" href={`/divisions/${division.slug}`}>
+                Visit division
+              </a>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <Carousel />
 
   <section class="recruiting on-dark">
     <div class="wrap-wide">
@@ -285,122 +277,6 @@ import { divisions } from '../data/divisions';
   }
 </script>
 
-<script>
-  // Divisions pinned sequence. Second rAF loop on this page (the vessel
-  // above is the first) — kept deliberately separate rather than merged
-  // into one shared loop. They're independent effects with independent
-  // visibility windows (the vessel spans About + divisions + carousel;
-  // this spans only the divisions section, which is itself now much
-  // taller than the vessel's other neighbours) and independent
-  // IntersectionObservers already gate each one to do nothing when its
-  // own element is off-screen. Merging them would mean coordinating an
-  // OR of two observer states just to run one loop that internally
-  // branches into two unrelated blocks of work — more coupling for a
-  // performance difference that doesn't exist: each frame's work here is
-  // a few multiplications and a handful of style writes, not something
-  // expensive enough for loop-consolidation to matter. DAMPING is shared
-  // via src/lib/motion.ts specifically so the two loops can't drift to
-  // different values even though they stay structurally independent.
-  import { DAMPING } from '../lib/motion';
-
-  // Named per the spec this was built from — the only two values this
-  // sequence's shape should need tuning.
-  const BAND = 0.18;
-  const TRAVEL = 110;
-
-  function smoothstep(t: number): number {
-    const x = Math.min(1, Math.max(0, t));
-    return x * x * (3 - 2 * x);
-  }
-
-  const section = document.querySelector<HTMLElement>('.divisions-section');
-  const blocks = document.querySelectorAll<HTMLElement>('.division-block');
-  const indicators = document.querySelectorAll<HTMLElement>('.indicator-rule');
-
-  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const shortViewport = window.matchMedia('(max-height: 600px)').matches;
-
-  // Blocks render visible, unpinned, in normal document flow by default
-  // (see the CSS below — .divisions-section has no special height or
-  // positioning unless .is-pinned is present, and .division-block starts
-  // at opacity: 1 in the stylesheet, never 0). That default state IS the
-  // fallback for no-JS, reduced motion, and a short viewport all at
-  // once — this class is only added when none of those apply, so there's
-  // one fallback path to reason about, not three separate ones.
-  if (section && blocks.length && !reduceMotion && !shortViewport) {
-    section.classList.add('is-pinned');
-
-    const n = blocks.length;
-    let current = 0;
-    let target = 0;
-    let rafId: number | null = null;
-
-    const frame = () => {
-      const rect = section.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const scrollableDistance = rect.height - viewportHeight;
-      target =
-        scrollableDistance > 0
-          ? Math.min(1, Math.max(0, -rect.top / scrollableDistance))
-          : 0;
-
-      current += (target - current) * DAMPING;
-
-      blocks.forEach((block, i) => {
-        const d = current - (i + 0.5) / n;
-        const opacity = smoothstep(1 - Math.min(1, Math.abs(d) / BAND));
-        const translateY = ((d * -TRAVEL) / BAND) * 0.5;
-
-        // Transform and opacity only — never anything layout-affecting.
-        block.style.opacity = String(opacity);
-        block.style.transform = `translateY(${translateY}px)`;
-        // Below 0.5 opacity a block is only faintly visible if at all;
-        // pointer-events: none stops its "Visit division" link from
-        // being mouse-clickable while it's essentially invisible. This
-        // only blocks pointer interaction — keyboard focus is untouched,
-        // so Tab still reaches every link regardless of opacity.
-        block.style.pointerEvents = opacity < 0.5 ? 'none' : '';
-        block.style.zIndex = String(Math.round(opacity * 10));
-
-        const indicator = indicators[i];
-        if (indicator) indicator.style.opacity = String(0.2 + opacity * 0.7);
-      });
-
-      rafId = requestAnimationFrame(frame);
-    };
-
-    const start = () => {
-      if (rafId === null) rafId = requestAnimationFrame(frame);
-    };
-    const stop = () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-      }
-    };
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) start();
-        else stop();
-      },
-      { threshold: 0 },
-    );
-    observer.observe(section);
-
-    // A keyboard user tabbing into a faded-out block should actually be
-    // able to see what they've focused, not land on something invisible
-    // behind another block — force the focused block fully visible and
-    // frontmost for as long as it holds focus, regardless of scroll
-    // progress. All three blocks stay in the DOM and in tab order either
-    // way; this only affects how the currently-focused one looks.
-    blocks.forEach((block) => {
-      block.addEventListener('focusin', () => block.classList.add('is-focused'));
-      block.addEventListener('focusout', () => block.classList.remove('is-focused'));
-    });
-  }
-</script>
-
 <style>
   /* Intro overlay */
   #intro-overlay {
@@ -462,14 +338,22 @@ import { divisions } from '../data/divisions';
     }
   }
 
-  /* Hero */
+  /* Hero. No background of its own on purpose — it now lives inside
+     .scroll-vessel-area (see below), and needs to stay transparent so the
+     ship shows through behind its own content, the same way it already
+     shows through behind .about-content further down. z-index: 1 keeps
+     the hero's own box (mark-wrap + content) painting above the ship's
+     z-index: 0 clip layer, which is a sibling now, not a descendant.
+     overflow: hidden here is unrelated to any of that — it's purely to
+     clip .hero-mark-wrap's own drift/rotation to the hero's box, and
+     stays safe to use because nothing inside .hero is position: sticky. */
   .hero {
     position: relative;
+    z-index: 1;
     overflow: hidden;
     min-height: 100dvh;
     display: flex;
     align-items: center;
-    background: var(--color-navy-deep);
   }
 
   .hero-mark-wrap {
@@ -609,42 +493,43 @@ import { divisions } from '../data/divisions';
     }
   }
 
-  /* Scroll-linked vessel — wraps About + the carousel so both share one
-     navy-deep ground (matching the hero and recruiting block, so the whole
-     homepage reads as one continuous dark surface) with the vessel visible
-     behind them. Intentionally does NOT wrap the recruiting section: that's
-     a separate closing block, and the brief said one moving element at a
-     time (the hero mark) plus this — not three things drifting at once.
+  /* Scroll-linked vessel — wraps the hero + About only, so the ship's
+     travel spans exactly that combined height and visibly stops the
+     moment the divisions section begins (the JS below reads this
+     element's own getBoundingClientRect(), so the ship's whole crossing
+     is scoped by DOM structure here, not by anything in the script).
+     Previously this wrapped About + divisions + carousel instead — moved
+     deliberately: divisions and the carousel are both below this now,
+     each with their own explicit navy-deep background, so the page still
+     reads as one continuous dark surface end to end even though the ship
+     itself no longer runs the full length of it.
      --focus-ring switches to gold here via .on-dark; color is set
-     explicitly to paper since .on-dark only handles the focus ring. */
+     explicitly to paper since .on-dark only handles the focus ring.
+
+     No overflow property on this element, and there never should be one
+     again. Measured, not assumed, the last time this got it wrong: even
+     `overflow-x: hidden` alone (leaving overflow-y unset) was enough to
+     silently break position: sticky on a descendant, because per the CSS
+     Overflow spec an element can't have one axis compute to hidden and
+     the other stay visible — the UA forces the unset axis from visible to
+     auto, and auto breaks sticky exactly like hidden does. The divisions
+     cards are sticky again now (see "Divisions" below), just no longer
+     nested inside this element at all — but the rule stands regardless of
+     what's nested here today: clip the ship's own horizontal travel on
+     its own dedicated layer (.scroll-vessel-clip, below), never on a
+     shared ancestor. */
   .scroll-vessel-area {
     position: relative;
     background: var(--color-navy-deep);
     color: var(--color-paper);
-    /* No overflow property here — see .scroll-vessel-clip below for why.
-       Measured, not assumed: even `overflow-x: hidden` alone (leaving
-       overflow-y unset) broke .divisions-sticky's position:sticky
-       descendant just as completely as the shorthand did. Per the CSS
-       Overflow spec, an element's computed overflow-x and overflow-y
-       can't actually diverge to (hidden, visible) — if one axis computes
-       to something other than visible, the UA forces the other axis's
-       *computed* value from visible to auto, and auto is enough to
-       break sticky the same way hidden does. There is no overflow value
-       on this element, on any axis, that clips horizontally without
-       also disabling sticky for a descendant — confirmed with rect.top
-       instrumentation (.divisions-sticky's rect.top tracked its
-       non-sticky parent's exactly, at every scroll position, under both
-       the shorthand and the single-axis longhand). */
   }
 
   /* Clips the vessel's horizontal travel — the only reason
-     .scroll-vessel-area used to carry `overflow: hidden` itself. Pulled
-     out into its own absolutely-positioned, full-bleed layer instead of
-     living on .scroll-vessel-area, specifically so it's a sibling of
-     .divisions-section rather than an ancestor of .divisions-sticky —
-     see the comment on .scroll-vessel-area above for why that ancestry
-     matters. inset: 0 matches it to .scroll-vessel-area's own box exactly
-     (that area has no padding), so the clip boundary is unchanged. */
+     .scroll-vessel-area used to carry `overflow: hidden` itself. See the
+     comment on .scroll-vessel-area above for why that clip lives here, on
+     its own absolutely-positioned, full-bleed layer, instead. inset: 0
+     matches it to .scroll-vessel-area's own box exactly (that area has no
+     padding), so the clip boundary is unchanged. */
   .scroll-vessel-clip {
     position: absolute;
     inset: 0;
@@ -751,43 +636,48 @@ import { divisions } from '../data/divisions';
     }
   }
 
-  /* Divisions — pinned, scroll-linked sequence. Sits inside
-     .scroll-vessel-area too, so it needs position:relative; z-index:1
-     like .about-content/.carousel-section to stay above the ship — this
-     still holds with the section now much taller (see the <script>
-     above for how that affects the ship's own crossing).
+  /* Divisions — stacking cards, pure CSS, no JavaScript at all. Cards sit
+     in normal document flow; each one is position: sticky at its own
+     increasing top offset, so as you scroll, the next card slides up and
+     covers the previous one, leaving a sliver of it showing above. This
+     replaces an earlier JS-driven pinned sequence (rAF loop, damped
+     progress maths, a 300vh section, a pip indicator, a focusin handler
+     to keep a faded block visible) — all removed, not just disabled. The
+     case for CSS-only over that: no rAF loop to pause/resume, no
+     reduced-motion special case to write (nothing here animates —
+     elements simply stop where the browser is told to stick them, so
+     there's nothing motion-sensitive to opt out of), no accessibility
+     work needed (every card is always in normal flow, always fully
+     visible, always tabbable — there was never an invisible or
+     faded-out state to design around), and it degrades gracefully by
+     construction anywhere position: sticky isn't supported: an
+     unsupported browser just renders position: static, i.e. a plain
+     stacked card list, no special fallback CSS required. Do not
+     reintroduce a JS implementation of this section.
 
-     The default state below (no .is-pinned class) is deliberately the
-     SAME fallback for three different conditions at once — no
-     JavaScript, prefers-reduced-motion, and a viewport shorter than
-     ~600px — because the script only adds that class when none of them
-     apply. One fallback path to reason about, not three. All three
-     blocks stay in the DOM and in the accessibility tree in every case;
-     nothing here uses display or visibility to hide a block, only
-     opacity (which doesn't remove an element from the tab order) plus
-     pointer-events (which only blocks mouse clicks, not keyboard focus).
+     No longer inside .scroll-vessel-area (see that comment above) — the
+     ship's travel now ends at the bottom of About, so this section gets
+     its own explicit navy-deep background/paper text instead of
+     inheriting the vessel wrapper's.
 
-     Verified, not assumed: gold text (tagline/number/link) directly over
-     the densest part of the ship graphic computes to ~8.3:1; the
-     description (paper at 0.78 opacity) there computes to ~7.8:1; both
-     clear 4.5:1 AA with real margin. The section heading was raised from
-     paper at 0.55 (a first pass that only cleared AA by ~5%) to **0.7**:
-     ~6.62:1 over that same ship-blended worst case, ~8.83:1 against plain
-     navy-deep — real margin above the ~6:1 target this was raised to
-     meet, not just barely past it. The block border is a functional
-     divider between blocks, not decoration, so it's held to the 3:1
-     non-text guideline against both backgrounds it can actually sit
-     over: raised from gold at 0.42 (2.95:1 against navy-deep, 2.74:1
-     against the ship-blended worst case — under 3:1 on both) to **0.5**:
-     3.74:1 against navy-deep, 3.26:1 against the worst case — clears 3:1
-     with margin in both. */
+     Verified, not assumed, against the actual background each element
+     now sits on: cards have a SOLID navy-mid background (required for
+     the stacking illusion — a transparent card wouldn't occlude the one
+     sliding up behind it), so their contents are checked against
+     navy-mid (#111834), not navy-deep or any ship blend (there's no ship
+     behind this section any more). Gold text (number/tagline/link) vs
+     navy-mid: ~11.1:1. Paper description at 0.78 opacity vs navy-mid:
+     ~9.9:1. Gold border at 0.5 opacity (non-text, held to the 3:1
+     guideline since it's what visually separates one card from the next,
+     not decoration) vs navy-mid: ~3.7:1. The section heading sits
+     directly on navy-deep (it's outside the cards): paper at 0.7 opacity
+     vs navy-deep, ~8.8:1 — carried over unchanged from the previous
+     version, now with even more margin since there's no ship-blended
+     worst case to check against here any more. */
   .divisions-section {
-    position: relative;
-    z-index: 1;
-  }
-
-  .divisions-sticky {
-    padding-block: 4rem;
+    background: var(--color-navy-deep);
+    color: var(--color-paper);
+    padding-block: 4rem 8rem;
   }
 
   .divisions-heading {
@@ -796,28 +686,45 @@ import { divisions } from '../data/divisions';
     opacity: 0.7;
   }
 
-  .divisions-stage {
+  .divisions-stack {
     margin-top: 2.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 2.5rem;
+    /* Matches the site header's own rendered height (measured: see
+       CLAUDE.md's "Divisions" section for the figure) plus a little
+       breathing room, so a card's sticky top edge can never end up
+       under the header — true today even though the header isn't
+       actually position: sticky itself, and keeps this correct without
+       adjustment if that ever changes. */
+    --header-clearance: 96px;
   }
 
-  .division-slot {
-    display: flex;
-    justify-content: center;
-  }
-
-  .division-block {
+  .division-card {
+    position: sticky;
+    /* Each card sticks 12px lower than the one before it, so the stack
+       reads as a cascade rather than everything piling up at one exact
+       offset — --i is set inline per card (0-indexed) in the markup. */
+    top: calc(var(--header-clearance) + var(--i) * 12px);
+    /* Later cards need to paint over earlier ones as they slide up.
+       Sibling sticky elements with no z-index already paint in DOM
+       order (later on top) per spec, but this is cheap to make explicit
+       rather than lean on that default. */
+    z-index: calc(var(--i) + 1);
+    margin-inline: auto;
     width: 100%;
     max-width: 520px;
     padding: 2.5rem;
+    /* Solid, not transparent — this is what makes the stacking effect
+       read at all. A transparent card would let the one sliding up
+       behind it show straight through instead of being covered. */
+    background: var(--color-navy-mid);
     border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
-    border-radius: 6px;
-    /* Always starts fully visible in the stylesheet — never opacity: 0
-       by default. The faded in/out treatment is added per frame by the
-       script above, and only once .is-pinned is present. */
-    opacity: 1;
+    border-radius: 8px;
+    /* Soft upward shadow so the stacking edge reads as an edge, not just
+       a flat colour change where one card's top overlaps the next. */
+    box-shadow: 0 -16px 32px -16px rgb(0 0 0 / 0.5);
+  }
+
+  .division-card:not(:last-child) {
+    margin-bottom: 80px;
   }
 
   .block-number {
@@ -828,12 +735,12 @@ import { divisions } from '../data/divisions';
     color: var(--color-gold);
   }
 
-  .division-block h3 {
+  .division-card h3 {
     margin-top: 0.5rem;
     font-size: var(--text-xl);
   }
 
-  .division-block .tagline {
+  .division-card .tagline {
     margin-top: 0.5rem;
     font-family: var(--font-sans);
     font-weight: 600;
@@ -841,7 +748,7 @@ import { divisions } from '../data/divisions';
     color: var(--color-gold);
   }
 
-  .division-block .description {
+  .division-card .description {
     margin-top: 0.75rem;
     font-family: var(--font-serif);
     font-size: var(--text-base);
@@ -850,7 +757,7 @@ import { divisions } from '../data/divisions';
     opacity: 0.78;
   }
 
-  .division-block .visit-link {
+  .division-card .visit-link {
     display: inline-block;
     margin-top: 1.25rem;
     font-family: var(--font-sans);
@@ -859,82 +766,6 @@ import { divisions } from '../data/divisions';
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.15em;
-  }
-
-  .divisions-indicator {
-    /* Only meaningful once a sequence is actually active — see
-       .is-pinned below. */
-    display: none;
-    margin-top: 2rem;
-    gap: 1.5rem;
-  }
-
-  .indicator-rule {
-    flex: 1;
-    height: 1px;
-    background: var(--color-gold);
-    opacity: 0.2;
-  }
-
-  /* Enhanced state, added by JS only when not reduced-motion and not a
-     short viewport. Everything above this point is what no-JS/reduced-
-     motion/short-viewport visitors get instead — normal document flow,
-     always visible. */
-  .divisions-section.is-pinned {
-    height: 300vh;
-  }
-
-  .is-pinned .divisions-sticky {
-    position: sticky;
-    top: 0;
-    height: 100dvh;
-    overflow: hidden;
-  }
-
-  /* .divisions-sticky's only DOM child is .wrap-wide (heading + stage +
-     indicator all live inside it) — flex:1 on .divisions-stage below only
-     does anything if THIS element is its flex parent. Measured, not
-     assumed: without this rule, .divisions-stage computed to height: 0
-     (an auto-height block whose only children are position:absolute, so
-     it has no in-flow content to size against), which put the blocks'
-     shared inset:0 anchor point wherever the heading happened to end
-     rather than centred in the sticky viewport. */
-  .is-pinned .divisions-sticky > .wrap-wide {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .is-pinned .divisions-stage {
-    position: relative;
-    flex: 1;
-    display: block;
-  }
-
-  .is-pinned .division-slot {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-inline: 1.5rem;
-  }
-
-  .is-pinned .division-block {
-    /* opacity / transform / pointer-events / z-index are written per
-       frame by the script above. */
-    will-change: opacity, transform;
-  }
-
-  .is-pinned .division-block.is-focused {
-    opacity: 1 !important;
-    transform: none !important;
-    pointer-events: auto !important;
-    z-index: 20 !important;
-  }
-
-  .is-pinned .divisions-indicator {
-    display: flex;
   }
 
   /* Recruiting */

@@ -41,8 +41,10 @@ and general search traffic arriving at individual articles (reach).
 
 "No client-side rendering for content" means what it says — content is not JS-rendered. It
 does not forbid small, scoped interaction-only scripts that add no content of their own: the
-homepage carousel's keyboard-arrow handling and its once-per-session intro-animation check
-are the only two such scripts on the site (see §3). Nothing else should use client-side JS.
+homepage carousel's keyboard-arrow handling, its once-per-session intro-animation check, and
+the scroll-linked vessel's motion loop are the only such scripts on the site (see §3). The
+divisions section used to have a fourth (a pinned-sequence rAF loop) but that was removed
+and replaced with pure CSS — see §3's "Divisions". Nothing else should use client-side JS.
 
 **No database. No server. No authentication. No third-party embeds that set cookies.**
 These are deliberate constraints, not omissions — they keep the security and compliance
@@ -98,16 +100,18 @@ or keypress. Entirely skipped (not just shortened) under `prefers-reduced-motion
 **Scroll-linked vessel.** A detailed gold vessel silhouette (`vessel-silhouette.svg`, not
 `vessel.jpg` — hull, bow, bridge, funnel, individual containers, masts; inlined in
 `VesselSilhouette.astro` so `currentColor` can set the gold via CSS, the same reason the
-mark is inlined) sits behind the About + carousel region — not the hero, which keeps the
-animated mark as its one moving element — and drifts horizontally as the page scrolls, a
-full crossing (starts entirely off the left edge, ends entirely off the right — the
-travel range is computed from the viewport's and the ship's own rendered width, not a
-fixed guess), reversing on scroll-up for free because motion is driven by actual scroll
-position every frame, not a one-shot trigger. Progress starts the moment the section
-first enters the viewport, not once it's fully in frame, and spans its entire passage
-through — see CLAUDE.md's "Scroll-linked vessel" section for the exact formula. Driven by
-a single `requestAnimationFrame` loop with a damping/easing step (`current` eases toward
-a scroll-derived `target`) so it glides rather than jumping in the ~100px steps a mouse
+mark is inlined) sits behind the hero **and** the About region — both share one wrapping
+container, so the ship's travel spans their combined height and stops entirely once the
+divisions section begins (verified by measurement, not just by trusting the DOM
+structure). It drifts horizontally as the page scrolls, a full crossing (starts entirely
+off the left edge, ends entirely off the right — the travel range is computed from the
+viewport's and the ship's own rendered width, not a fixed guess), reversing on scroll-up
+for free because motion is driven by actual scroll position every frame, not a one-shot
+trigger. Progress starts the moment the wrapping container first enters the viewport, not
+once it's fully in frame, and spans its entire passage through — see CLAUDE.md's
+"Scroll-linked vessel" section for the exact formula. Driven by a single
+`requestAnimationFrame` loop with a damping/easing step (`current` eases toward a
+scroll-derived `target`) so it glides rather than jumping in the ~100px steps a mouse
 wheel actually scrolls in — deliberately **not** CSS `animation-timeline:
 scroll()`/`view()`, which was tried first and rejected because it can only bind straight
 to raw scroll position with no way to express that easing (see CLAUDE.md for the full
@@ -117,12 +121,17 @@ under `prefers-reduced-motion`. Its opacity must be verified, not assumed, again
 contrast for whatever body copy it can sit behind — see the code comment in `index.astro`
 for the actual computed numbers. The horizontal travel needs clipping so it can never
 produce a page-level scrollbar (checked at narrow mobile widths specifically), but that
-clip lives on its own small absolutely-positioned wrapper around just the ship, not on
-the shared container that also holds the divisions section — that container also hosts a
-`position: sticky` descendant (see below), and `overflow` on any axis on an ancestor of a
-sticky element silently breaks its stickiness. See CLAUDE.md's "Scroll-linked vessel"
-section for the full story — this was a real bug, found by scroll-position
-instrumentation, not visual inspection.
+clip lives on its own small absolutely-positioned wrapper around just the ship, never on
+the shared wrapping container itself — that container must never carry an `overflow`
+property on any axis, full stop, because `overflow` on any axis on an ancestor of a
+`position: sticky` element silently breaks that element's stickiness (`overflow-x` alone
+doesn't dodge it either — the CSS Overflow spec forces the other, unset axis from
+`visible` to `auto`, which breaks it just the same). This was a real, shipped bug from an
+earlier version where the divisions section — then a pinned sticky sequence — was nested
+inside this same wrapper; found by scroll-position instrumentation, not visual
+inspection. Divisions isn't nested in here at all any more (see below), but the rule
+stands regardless of what's ever added to this wrapper in future. See CLAUDE.md's
+"Scroll-linked vessel" section for the full story.
 
 **About content**, below the hero, a two-column editorial grid at desktop widths —
 statement heading in the serif on the left, its own paragraph (capped near 62 characters)
@@ -133,52 +142,43 @@ its own measure. See the copy in the repo (`src/pages/index.astro`) for the exac
 wording, which should be treated as fixed unless BSGT itself asks for a copy change;
 don't silently rewrite it.
 
-**Divisions**, between the About content and the carousel: "One vision, supported by
-three divisions" above a **pinned, scroll-linked sequence** (Events, Research,
-Marketing) — the section pins in place for ~3 viewport heights while scrolling and each
-division's outlined block takes over the sticky panel in turn, reversing smoothly on
-scroll up. Not a static three-column grid. Per division, in order: number (01/02/03,
-gold, small, letter-spaced), name (serif, large), a one-line tagline (gold), a
-description (paper at ~0.78 opacity), and a "Visit division" link to that division's
-page (gold, underlined). The block itself is an outlined panel — 1px gold border at
-0.5 opacity (raised from an initial 0.42, which fell under the 3:1 WCAG non-text
-guideline against both plain navy-deep and the ship-blended worst case; 0.5 clears 3:1
-against both with margin — this border is a functional divider between blocks, not
-decoration, so it's held to that threshold), 6px radius, generous padding, ~520px
-max-width, vertically centred in the sticky viewport. Three thin horizontal rules
-beneath the blocks act as a position indicator, each rising from 0.2 to 0.9 opacity as
-its block becomes active.
+**Divisions**, its own section after the vessel-wrapped hero/About region ends and before
+the carousel: "One vision, supported by three divisions" above **stacking cards, pure
+CSS, no JavaScript** (Events, Research, Marketing). Cards sit in normal document flow;
+each is `position: sticky` at its own increasing `top` offset (a base clearance that
+accounts for the site header's height, plus 12px per card), so as the reader scrolls,
+each subsequent card slides up and covers the one before it, leaving a ~12px sliver of it
+showing above — not a pinned/scroll-jacked sequence, and not a static three-column grid
+either. Per division, in order: number (01/02/03, gold, small, letter-spaced), name
+(serif, large), a one-line tagline (gold), a description (paper at ~0.78 opacity), and a
+"Visit division" link to that division's page (gold, underlined). Each card is a
+**solid** `navy-mid` panel — required for the stacking illusion, since a transparent card
+would let the one sliding up behind it show straight through instead of being covered —
+with a 1px gold border at 0.5 opacity (held to the 3:1 WCAG non-text guideline since it's
+a functional divider between cards, not decoration), 8px radius, generous padding, ~520px
+max-width, and a soft upward shadow so the stacking edge itself reads.
 
-Progress through the section is scroll-derived and eased with the same damped-follow
-formula as the ship (`current += (target - current) * DAMPING`, `DAMPING` imported from
-`src/lib/motion.ts` so the two independent animation loops on this page can't drift
-apart). Per block `i` of `n`: `d = progress - (i + 0.5) / n`, `opacity =
-smoothstep(1 - min(1, |d| / BAND))`, `translateY = d * -TRAVEL / BAND * 0.5`, with
-`BAND = 0.18` and `TRAVEL = 110px` as named constants. Only `transform` and `opacity`
-are animated (plus `pointer-events: none` below 0.5 opacity, so a faded block's link
-isn't mouse-clickable, and `z-index` to keep the absolutely-stacked blocks painting in
-the right order). Only one block is meaningfully visible at a time.
-
-**Fallbacks are required, not a nice-to-have, and all three collapse to the same
-state**: under `prefers-reduced-motion`, on a viewport under ~600px tall ("pinning on a
-short screen traps the reader"), or with JavaScript unavailable, the section renders as
-normal document flow — no pinning, no `height: 300vh`, no rAF loop — with all three
-blocks stacked vertically, stationary, and fully visible in document order. The
-stylesheet never sets a division block's default opacity below 1; the enhancement
-(pinning + animation) is added by JS as an opt-in class only when none of those three
-conditions apply, so there is one fallback path, not three ad hoc ones. All three
-blocks stay in the DOM and in the accessibility tree at all times regardless of visual
-opacity — a screen reader or keyboard (Tab) user can always reach all three "Visit
-division" links, and a block that receives keyboard focus is forced fully visible and
-frontmost for as long as it holds focus, so focus is never trapped on a visually-hidden
-block. An `IntersectionObserver` pauses the rAF loop while the section is off-screen,
-mirroring the ship's own pause behaviour; it's a second, independent rAF loop on this
-page (the ship's is the first), deliberately not merged into one shared loop — see the
-comment in `src/pages/index.astro` for why.
+This **replaced** an earlier pinned, scroll-linked sequence — a `requestAnimationFrame`
+loop, damped progress maths shared with the ship, a `height: 300vh` section, opacity/
+`translateY` per-block maths, a pip position indicator, a `focusin` handler to keep a
+faded block visible — all removed outright, not disabled, per an explicit instruction not
+to reintroduce a JS implementation of this section. The case for CSS-only: nothing here
+animates in the transition sense, so there's no `requestAnimationFrame` loop to pause and
+resume and no `prefers-reduced-motion` special case to write — elements simply stop where
+they're told to stick, with nothing to opt out of. No accessibility work was needed
+either: every card stays in normal document flow, fully visible in the DOM, and always
+reachable by Tab — unlike the old sequence, there was never an invisible or faded-out
+state to design a workaround for. And it degrades to a plain stacked card list by
+construction anywhere `position: sticky` isn't supported, since an unsupported browser
+just renders it as `position: static` — no separate fallback CSS required. One nuance
+worth naming honestly rather than glossing over: a covered card's "Visit division" link
+remains focusable even while visually obscured under the card stacked on top of it;
+fixing that with JS would reintroduce exactly the kind of script this change removed, so
+it wasn't added.
 
 Data lives in `src/data/divisions.ts` — a small typed array, not a content collection;
-these are permanent structural items, not posts, and the same file drives both this
-sequence and the division pages below, so the copy is never duplicated. See the copy in
+these are permanent structural items, not posts, and the same file drives both this card
+stack and the division pages below, so the copy is never duplicated. See the copy in
 the repo for the exact wording, same rule as the About content above.
 
 **Division pages** (`/divisions/[slug]`, one dynamic route generated from

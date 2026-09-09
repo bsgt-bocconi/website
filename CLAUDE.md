@@ -36,79 +36,73 @@ that spec when something here is unclear or missing.
 redirect — this only works once deployed, not in local `astro dev`/`astro preview`).
 Nav is About → Team → Articles → Events, with About pointing to `/`. The homepage is a
 full-viewport hero (animated mark, staggered fade-in content, a once-per-session intro
-animation), then — all inside `.scroll-vessel-area`, sharing the one scroll-linked
-vessel background — the About prose, the three-divisions section, and the image
-carousel, then the recruiting block outside that area, all now one continuous
-`navy-deep` ground end to end. See spec §3 for the full description — don't rebuild an
+animation), sharing `.scroll-vessel-area` (the scroll-linked vessel background) with the
+About prose right after it, then the divisions section, the image carousel, and the
+recruiting block — each of those last three now a plain sibling with its own explicit
+`navy-deep` background rather than sharing the vessel wrapper's, so the page still reads
+as one continuous dark surface end to end even though the ship itself only runs behind
+the hero and About. See spec §3 for the full description — don't rebuild an
 articles-led homepage, that design was retired.
 
 **Divisions.** `src/data/divisions.ts` — three fixed items (Events, Research, Marketing),
 each `{ slug, name, tagline, description }` — is the single source of truth for both the
-homepage blocks and the `/divisions/[slug]` pages; neither hardcodes the copy. A small
+homepage cards and the `/divisions/[slug]` pages; neither hardcodes the copy. A small
 typed data file, not a content collection — permanent structural items don't need
 drafts/dates/an id-per-file, just an array; add a fourth division by adding a fourth
 object with a `slug`, nothing about either the homepage layout or the dynamic route
 assumes exactly three.
 
-*Homepage* (`index.astro`, between the About content and the carousel, still inside
-`.scroll-vessel-area`): a **pinned, scroll-linked sequence** — `.divisions-section`
-grows to `height: 300vh` and each division's block takes over the sticky panel in
-turn as the reader scrolls, reversing on scroll up. Deliberately **is** now a
-pinned/scroll-jacked sequence — this reverses an earlier version of this section that
-was explicitly a static three-column grid; don't revert to that without a fresh
-instruction. Progress is derived from `.divisions-section`'s `getBoundingClientRect()`
-each frame and eased with the same damped-follow formula as the ship
-(`current += (target - current) * DAMPING`), with `DAMPING` imported from
-`src/lib/motion.ts` — a small shared module created specifically so the vessel's loop
-and this one can't drift to different values while staying two independent scripts.
-Per block: `d = progress - (i + 0.5) / n`, `opacity = smoothstep(1 - min(1, |d| /
-BAND))`, `translateY = d * -TRAVEL / BAND * 0.5`, with `BAND = 0.18` and
-`TRAVEL = 110` as named constants in the script. Only `transform`/`opacity` are
-animated per frame (plus `pointer-events: none` below 0.5 opacity so a faded block's
-link isn't mouse-clickable, and `z-index` so the absolutely-stacked blocks paint in
-the right order — a small, deliberate addition beyond transform/opacity, needed only
-because three blocks occupy the same visual space at once). A row of three thin
-horizontal rules beneath the blocks acts as a position indicator, opacity 0.2 rising to
-0.9 for the active block.
+*Homepage* (`index.astro`, its own `<section class="divisions-section on-dark">`, a
+sibling after `.scroll-vessel-area` closes, not nested inside it): **stacking cards, pure
+CSS, zero JavaScript.** Cards sit in normal document flow; each is `position: sticky`
+at its own `top` offset (`calc(var(--header-clearance) + var(--i) * 12px)`, `--i` set
+inline per card in the markup, 0-indexed), so as the reader scrolls, each subsequent
+card slides up and covers the one before it, leaving a ~12px sliver of it showing above.
+`--header-clearance: 96px` leaves the first card's stuck position clear of the site
+header (measured height ~76px) with a little margin — the header isn't actually
+`position: sticky` itself today, but this keeps the offset correct if that ever changes,
+per an explicit ask to account for it. Cards except the last carry `margin-bottom: 80px`
+for spacing between their natural (unstuck) positions. `z-index: calc(var(--i) + 1)`
+makes the paint order explicit (later cards on top) rather than leaning on the default
+DOM-order stacking behaviour sibling `position: sticky` elements get with `z-index: auto`
+— correct either way, but worth being explicit about.
 
-Each block is an outlined panel (1px gold border at 0.5 opacity — raised from an initial
-0.42, which fell under the 3:1 WCAG non-text-contrast guideline; treated as functional
-since it's what distinguishes one block's boundary from the next, not decoration, 6px
-radius, ~520px max-width) containing, in order: a `01`/`02`/`03` number (gold, small,
+This **replaced** an earlier JS-driven pinned sequence (a `requestAnimationFrame` loop,
+damped progress maths shared with the vessel via `DAMPING` in `src/lib/motion.ts`,
+`BAND`/`TRAVEL` constants, a `height: 300vh` section, a pip position-indicator, a
+`focusin` handler to keep a faded block visible) — all removed outright, not disabled.
+**Do not reintroduce a JS implementation of this section.** The case for CSS-only:
+nothing here animates in the transition sense — elements simply stop where the browser
+is told to stick them — so there's no `requestAnimationFrame` loop to pause/resume, no
+`prefers-reduced-motion` special case to write (nothing to opt out of), no accessibility
+work needed (every card is always in normal flow, always fully visible in the DOM, always
+reachable by Tab — there was never a faded/invisible state to design around, unlike the
+old sequence's opacity-based blocks), and it degrades to a plain stacked card list by
+construction anywhere `position: sticky` isn't supported (an unsupported browser just
+renders it as `position: static` — no separate fallback CSS needed). One caveat worth
+knowing, not fixed: a covered card's "Visit division" link is still in the DOM and still
+focusable, but visually obscured underneath the card stacked on top of it while covered —
+adding JS to force a focused card back to the top would reintroduce exactly the kind of
+script this change removed, so it wasn't added; browsers generally scroll a focused
+element into view when it isn't, which for this pattern tends to resolve the overlap
+naturally as the scroll position that follows also changes which card is on top.
+
+Cards need a **solid** `navy-mid` (`#111834`) background — this is what makes the
+stacking illusion read at all; a transparent card would let the one sliding up behind it
+show straight through instead of being covered. 1px gold border at 0.5 opacity, 8px
+radius, a soft upward `box-shadow` so the stacking edge itself reads as an edge. Content
+per card, unchanged from the previous version: a `01`/`02`/`03` number (gold, small,
 letter-spaced), the division name (serif), a gold tagline, a paper-at-0.78-opacity
-description, and a gold underlined "Visit division" link to its `/divisions/[slug]` page
-— gold is used more freely in this section than elsewhere on the page (tagline, number,
-and link all gold, not just the tagline), a deliberate change from that section's
-earlier styling. Section heading is paper at 0.7 opacity, also raised from an initial
-0.55 for the same reason (AA margin too thin at 0.55).
-
-**Vertical centring relies on a flex chain that's easy to break by editing one link of
-it without the others.** `.divisions-sticky`'s only DOM child is `.wrap-wide` (heading +
-stage + indicator all live inside that one wrapper) — so `.is-pinned .divisions-sticky >
-.wrap-wide { display: flex; flex-direction: column; height: 100% }` is what turns
-`.divisions-stage`'s `flex: 1` into real height. Skip that rule and `.divisions-stage`
-computes to `height: 0` (an auto-height block whose only children are
-`position: absolute`, contributing nothing to its own height), which doesn't stop the
-blocks from being *visible* — their shared `inset: 0` anchor point just ends up wherever
-the heading happens to end, not centred in the sticky viewport. Verified by measurement
-(`getBoundingClientRect()` on the blocks at each one's peak-opacity scroll offset, not
-by eyeballing a screenshot), same instrumentation-first approach as the sticky bug two
-paragraphs up.
-
-**Fallbacks, required not optional, and all three collapse to one state**: under
-`prefers-reduced-motion`, under a ~600px-or-shorter viewport ("pinning on a short
-screen traps the reader"), or with JS unavailable, the section is normal document flow
-— no `height: 300vh`, no sticky, no rAF loop — with all three blocks stacked, static,
-and fully visible in document order. The stylesheet's default `.division-block` opacity
-is always `1`; the script only adds the `.is-pinned` enhancement class when none of
-those three conditions hold, so there's one fallback CSS path, not three. All three
-blocks stay in the DOM and in the accessibility tree regardless of visual state — Tab
-reaches all three "Visit division" links always, and `focusin`/`focusout` listeners
-force a keyboard-focused block fully visible and frontmost (`.is-focused`) so focus is
-never trapped on a block that's currently faded out. An `IntersectionObserver` pauses
-this rAF loop while the section is off-screen, same pattern as the vessel's own pause —
-see the hard-constraints entry below for why this stays a second, independent loop
-rather than merging with the vessel's.
+description, a gold underlined "Visit division" link. Section heading is paper at 0.7
+opacity, sitting directly on the section's own `navy-deep` background (not blended with
+any ship graphic — there's no ship behind this section any more, see "Scroll-linked
+vessel" below). Contrast re-verified against what's actually behind each element now
+(cards are opaque `navy-mid`, not the old semi-transparent panels over a ship-blended
+background) — gold text vs `navy-mid`: ~11.1:1; paper description at 0.78 vs `navy-mid`:
+~9.9:1; gold border at 0.5 (held to the 3:1 non-text guideline, since it's a functional
+divider between cards, not decoration) vs `navy-mid`: ~3.7:1; heading vs `navy-deep`:
+~8.8:1. All comfortably past AA, with more margin than the previous ship-blended-worst-
+case version had, since that worst case no longer applies here.
 
 *Division pages* (`src/pages/divisions/[slug].astro`, one dynamic route generated from
 `divisions` via `getStaticPaths`, not three separate files): header (name + tagline),
@@ -142,9 +136,17 @@ follow it automatically.
 **Scroll-linked vessel**: `brand/vessel-silhouette.svg` (canonical, editable, detailed —
 hull, bow, bridge, funnel, individual containers, masts) / `public/vessel-silhouette.svg`
 (served copy, kept only for reference — the site itself no longer loads this file at
-runtime, see below). Sits behind the About + carousel region only, not the hero (that's
-the animated mark's territory) and not the recruiting block (its own closing section) —
-never more than one moving element in view at once.
+runtime, see below). Sits behind the hero **and** About — `.scroll-vessel-area` wraps
+both of them now, so the ship's whole crossing spans their combined height and it's
+gone entirely by the time the divisions section begins (verified by measurement: the
+ship's clip layer reports zero viewport intersection at every sampled scroll position
+once past that boundary). This reverses an earlier version where the vessel ran behind
+About + the divisions section + the carousel instead, and the hero had its own separate,
+untouched animated-mark territory with no ship at all — that separation is gone now: the
+hero's own drifting mark (`.hero-mark-wrap`) and the ship both run at once behind the
+hero, which is a deliberate instruction, not an oversight of the "one moving element at a
+time" rule this page used to follow. The recruiting block still sits outside
+`.scroll-vessel-area` entirely (its own closing section, no ship).
 
 The SVG's `viewBox` is `"0 -36 920 202"` — the negative min-y is real, not a typo (the
 radar mast sits above the deck's y=0 origin). Preserve it exactly; changing it clips the
@@ -216,26 +218,30 @@ for the numbers; re-verify both tiers again if the opacity changes.
 The ship's horizontal travel needs clipping to guarantee no horizontal scrollbar from
 the animation's range, at any viewport width — but that clip lives on
 `.scroll-vessel-clip`, a small absolutely-positioned (`inset: 0`) wrapper around just
-`.scroll-vessel-position`, **not** on `.scroll-vessel-area` itself. This one is load-
-bearing: `.scroll-vessel-area` also contains `.divisions-section` → `.divisions-sticky`
-(a `position: sticky` element, see "Divisions" above), and putting `overflow: hidden` —
-or any non-default overflow, on either axis — on an ancestor between a sticky element
-and the viewport breaks that element's stickiness entirely. This was a real, shipped bug
-(diagnosed by scroll-position instrumentation, not inspection: `.divisions-sticky`'s
-`getBoundingClientRect().top` tracked its non-sticky parent's `top` exactly at every
-scroll offset — i.e. it never actually stuck, it just scrolled normally with the page).
-`overflow-x: hidden` alone doesn't dodge this either — per the CSS Overflow spec, an
+`.scroll-vessel-position`, **not** on `.scroll-vessel-area` itself, and `.scroll-vessel-
+area` should never carry an `overflow` property again, on either axis, no matter what
+ends up nested inside it in a future pass. This is a hard-won rule, not a style
+preference: `.scroll-vessel-area` used to wrap the divisions section too, back when
+divisions was a `position: sticky` pinned sequence, and `overflow: hidden` (or even just
+`overflow-x: hidden` alone, unset `overflow-y` included — per the CSS Overflow spec, an
 element can't have one axis compute to `hidden` and the other stay `visible`; if either
-axis is non-`visible`, the browser forces the *other* axis's computed value from
-`visible` to `auto`, which still breaks sticky. `.scroll-vessel-clip` sidesteps the whole
-problem structurally: it's a sibling of `.divisions-section`, not an ancestor of
-`.divisions-sticky`, so the clip and the sticky descendant no longer share a lineage.
-Don't move the horizontal clip back onto `.scroll-vessel-area` — re-verify with rect
-instrumentation, not visual inspection, if you ever touch this area, since a broken
-sticky can look deceptively close to working for the first block before silently failing
-for the rest (see "Divisions" above for why: the JS's own progress math is driven by the
-non-sticky `.divisions-section`'s rect and was correct the whole time the bug existed —
-only the visual pin was broken, which inspection of the animation math alone won't catch).
+axis is non-`visible` the browser forces the *other* axis's computed value from `visible`
+to `auto`, which breaks sticky exactly the same way) on that shared ancestor silently
+broke the divisions sequence's sticky positioning entirely — a real, shipped bug, only
+caught by scroll-position instrumentation (`getBoundingClientRect().top` on the sticky
+element tracked its non-sticky parent's `top` exactly at every scroll offset — it never
+actually stuck, it just scrolled normally with the page), not by inspecting the
+animation code, because the JS driving it was correct the whole time; only the CSS
+pinning was broken. Divisions is CSS-only stacking cards now, and no longer nested inside
+`.scroll-vessel-area` at all (see "Divisions" above), so this specific ancestor
+relationship no longer exists — but the underlying trap is general, not specific to that
+one now-removed structure: if anything `position: sticky` is ever nested inside
+`.scroll-vessel-area` again, giving that wrapper its own `overflow` (for clipping or any
+other reason) will break it the same way. Keep the clip isolated on its own dedicated
+layer, sibling to whatever else lives in `.scroll-vessel-area`, the way
+`.scroll-vessel-clip` already does. If you ever touch this area, re-verify with rect
+instrumentation, not visual inspection — a broken sticky element can look deceptively
+close to working before silently failing.
 
 ## Layout width: `.wrap` vs `.wrap-wide`
 
@@ -246,8 +252,9 @@ Two container utilities in `global.css`, both `margin-inline: auto` + `padding-i
   shared sitewide, including by the pages that must stay narrow (see "Light vs dark
   grounds" below).
 - **`.wrap-wide`** — 75rem (1200px). The association-facing container: homepage (hero,
-  About, carousel, recruiting all use it now), `/team`, `/events`. Exists specifically so
-  widening those pages doesn't touch `.wrap` and therefore doesn't touch articles.
+  About, divisions, carousel, recruiting all use it now), `/team`, `/events`. Exists
+  specifically so widening those pages doesn't touch `.wrap` and therefore doesn't touch
+  articles.
 
 Within `.wrap-wide`, cap the *text*, not the container, wherever a reading measure still
 matters — e.g. the homepage's `.about-pair p` at `62ch`, the hero's `.slogan` at `42rem`,
@@ -320,15 +327,16 @@ Doesn't apply to "BSGT" itself, which is used freely in both contexts.
 - No Google Analytics, no tag manager, no tracking pixels.
 - No Google Fonts CDN — fonts are bundled locally.
 - No client-side JS beyond interaction-only scripts that render no content of
-  their own. Currently four, all in `src/pages/index.astro` /
+  their own. Currently three, all in `src/pages/index.astro` /
   `src/components/Carousel.astro`: the carousel's keyboard-arrow handling,
-  the once-per-session intro-animation `sessionStorage` check, the
+  the once-per-session intro-animation `sessionStorage` check, and the
   scroll-linked vessel's `requestAnimationFrame` motion loop (see
   "Scroll-linked vessel" below — this one runs the whole effect itself now,
-  it isn't a fallback for a CSS path anymore), and the divisions section's
-  own `requestAnimationFrame` pinned-sequence loop (see "Divisions" below —
-  a second, independent rAF loop, deliberately not merged with the vessel's).
-  Don't add a fifth without a real reason — CSS/native-HTML solves almost
+  it isn't a fallback for a CSS path anymore). The divisions section used to
+  have a fourth — a `requestAnimationFrame` pinned-sequence loop — removed
+  entirely and replaced with pure-CSS `position: sticky` stacking cards (see
+  "Divisions" below); don't reintroduce a JS implementation there. Don't add
+  a fourth script back without a real reason — CSS/native-HTML solves almost
   everything else on this site.
 
 ## Content model (see spec §4 for exact field types)
