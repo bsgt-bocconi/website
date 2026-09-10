@@ -35,7 +35,7 @@ const hasAnyMembers = allMembers.length > 0;
     <div class="wrap-wide">
       <header class="page-header">
         <h1>The Team</h1>
-        <p class="dek">The committee behind BSGT's lectures, workshops, articles, and events.</p>
+        <p class="dek">The committee behind BSGT's lectures, workshops, research, and events.</p>
       </header>
 
       {
@@ -71,7 +71,12 @@ const hasAnyMembers = allMembers.length > 0;
   .team-page {
     background: var(--color-navy-deep);
     color: var(--color-paper);
-    padding-block: 3rem 4rem;
+    /* Bottom was 4rem, matching the other dark pages' shared convention
+       — but this page's cards each carry their own tall, airy 4:5
+       placeholder box, so the same 4rem read as noticeably more space
+       than it does on a denser page like /events. Tightened here
+       specifically, not sitewide. */
+    padding-block: 3rem 2rem;
   }
 
   .page-header {
