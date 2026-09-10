@@ -36,6 +36,11 @@ const team = defineCollection({
     z.object({
       name: z.string(),
       role: z.string(),
+      // Sections the team page into its three tiers, in this order:
+      // board (President/VPs), departments (heads running the day-to-day
+      // divisions), directors (the remaining director/lead roles). `order`
+      // below is scoped within a group, not global — see team.astro.
+      group: z.enum(['board', 'departments', 'directors']),
       programme: z.string().optional(),
       photo: image().optional(),
       linkedin: z.string().url().optional(),

@@ -554,8 +554,12 @@ written in British English throughout, that was wrong before.
 - **Event**: title, date, startTime?, location, type (lecture|workshop|
   social|other), description, registrationUrl?, draft (default true).
   Upcoming/past is derived from `date`, never a manual flag.
-- **Team member**: name, role, programme?, photo?, linkedin?, order,
-  draft (default true).
+- **Team member**: name, role, group (`board`|`departments`|`directors`),
+  programme?, photo?, linkedin?, order, draft (default true). `group`
+  sections `/team` into three tiers, rendered in that fixed order
+  regardless of the collection's own file order — see "Team page" below.
+  `order` is scoped *within* a group, not global: two members in
+  different groups can share the same `order` value without conflict.
 - **Slide** (homepage carousel, `src/content/slides/`): caption (doubles as
   alt text when `image` is set, or the visible placeholder message when it
   isn't), image?, order, draft (default true).
@@ -571,6 +575,45 @@ filter. If filtering drops the carousel to one slide or zero, that's the
 correct, honest state — `Carousel.astro` already handles both; don't "fix"
 it by making placeholders un-draftable again to keep the carousel looking
 full.
+
+## Team page
+
+`/team` sections the roster into three fixed tiers by `group`, always in this order
+regardless of collection file order: **BSGT Board** (`board`), **Main Departments**
+(`departments`), **Board Directors & Leads** (`directors`). `team.astro` filters the full
+`getCollection('team', ...)` result once per group and sorts each group independently by
+its own `order` — a section with zero members (draft-filtered to nothing, or simply no
+entries in that tier yet) renders nothing for that heading rather than an empty grid; the
+page falls back to the existing "roster hasn't been published yet" message only when
+*every* group is empty.
+
+**Grid columns are explicit per group, not `auto-fill`/`auto-fit`.** With a fixed, known
+member count per tier (currently 3/4/4), a fluid auto-fill grid can't guarantee an even
+last row — it fits as many columns as the container allows, independent of how many
+cards there are to fill them, so a 4-person group at a width that fits 3 columns produces
+a lone orphan card on its own row. Each group's `.team-grid` instead gets
+`grid-template-columns` values chosen to divide that group's actual count evenly at every
+breakpoint: `.team-section--board` is `repeat(3, 1fr)` throughout (only ever wraps to a
+single column below 560px, where every group drops to one column and orphan rows are
+moot); `.team-section--departments`/`--directors` are `repeat(4, 1fr)` above 900px,
+`repeat(2, 1fr)` between 560–900px (4 members ÷ 2 = 2 even rows), and `repeat(1, 1fr)`
+below that. If the roster's per-group counts ever change, these column counts need
+revisiting — they're tuned to 3/4/4, not derived from the data.
+
+**Photo placeholders** (`TeamMemberCard.astro`): no photographs exist yet for anyone on
+the roster, and `photo` stays optional in the schema — nothing should force a photo to
+exist before a member can be added. When absent, the card renders a `navy-mid` panel,
+gold `1px` border (same treatment as the division cards' border, already verified ~3.7:1
+against `navy-mid` — a non-text but functional boundary, not decoration), with the
+person's own initials centred in gold Newsreader serif — deliberately not a generic
+silhouette avatar, which reads as a broken image rather than an intentional placeholder.
+Initials are first-word-initial + last-word-initial (middle names skipped, same as an
+ordinary monogram) computed from `name` directly, not a separate field. The box is a
+fixed `aspect-ratio: 4 / 5` in both states (photo and placeholder) — chosen as the ratio
+real headshots will eventually use, specifically so a photo arriving later drops into the
+existing box with zero reflow; don't change it without updating every already-published
+member at the same time. Contrast verified: gold initials vs `navy-mid` is the same
+~11.1:1 already established for the division cards' gold text on that background.
 
 ## Brand tokens
 

@@ -3,9 +3,28 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import TeamMemberCard from '../components/TeamMemberCard.astro';
 
-const members = (
-  await getCollection('team', ({ data }) => import.meta.env.DEV || data.draft === false)
-).sort((a, b) => a.data.order - b.data.order);
+const allMembers = await getCollection(
+  'team',
+  ({ data }) => import.meta.env.DEV || data.draft === false,
+);
+
+// Order here is the page order top to bottom — board, then departments,
+// then the remaining directors/leads — not alphabetical or anything
+// derived from the data itself.
+const GROUPS = [
+  { key: 'board', heading: 'BSGT Board' },
+  { key: 'departments', heading: 'Main Departments' },
+  { key: 'directors', heading: 'Board Directors & Leads' },
+] as const;
+
+const sections = GROUPS.map((group) => ({
+  ...group,
+  members: allMembers
+    .filter((member) => member.data.group === group.key)
+    .sort((a, b) => a.data.order - b.data.order),
+}));
+
+const hasAnyMembers = allMembers.length > 0;
 ---
 
 <BaseLayout
@@ -20,16 +39,24 @@ const members = (
       </header>
 
       {
-        members.length === 0 ? (
+        !hasAnyMembers ? (
           <p class="empty">The committee roster hasn't been published yet.</p>
         ) : (
-          <ul class="team-grid">
-            {members.map((member) => (
-              <li>
-                <TeamMemberCard member={member} />
-              </li>
-            ))}
-          </ul>
+          sections.map(
+            (section) =>
+              section.members.length > 0 && (
+                <section class={`team-section team-section--${section.key}`}>
+                  <h2>{section.heading}</h2>
+                  <ul class="team-grid">
+                    {section.members.map((member) => (
+                      <li>
+                        <TeamMemberCard member={member} />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ),
+          )
         )
       }
     </div>
@@ -51,7 +78,7 @@ const members = (
     /* No measure cap — "The Team" plus one short line isn't a reading
        column, and capping it at 68ch left it floating narrow above a
        wide grid. Let it use the same wrap-wide width as the grid below. */
-    margin-bottom: 2.5rem;
+    margin-bottom: 3rem;
   }
 
   .dek {
@@ -63,16 +90,60 @@ const members = (
     opacity: 0.75;
   }
 
+  .team-section + .team-section {
+    margin-top: 3.5rem;
+    padding-top: 3.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-paper) 15%, transparent);
+  }
+
+  .team-section h2 {
+    font-family: var(--font-serif);
+    font-size: var(--text-xl);
+    /* Same "quiet section heading" treatment used elsewhere on dark
+       grounds (e.g. the homepage's .divisions-heading) — distinguishes
+       the three tiers clearly without competing with "The Team" above
+       them. Verified: paper @0.7 vs navy-deep is ~8.83:1, well past AA. */
+    color: var(--color-paper);
+    opacity: 0.7;
+  }
+
   .team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-    gap: 2rem 2.5rem;
-    margin: 0;
+    margin: 1.75rem 0 0;
     padding: 0;
     list-style: none;
-    /* No cap here either — auto-fill naturally adds more columns as the
-       wrap-wide container gets wider, which is the right way to use the
-       extra space (more cards per row, not one stretched narrow strip). */
+    display: grid;
+    gap: 2rem 2.5rem;
+  }
+
+  /* Explicit, group-specific column counts rather than one shared
+     auto-fill grid — chosen so each breakpoint's column count divides
+     the group's actual member count evenly (3 for board; 4, 2, or 1 for
+     the two 4-person groups), so nothing ever wraps to a lone orphan
+     card on its own row. auto-fill/auto-fit can't guarantee that for a
+     fixed, known item count — it fits as many columns as the container
+     allows, independent of how many items there are to fill them. */
+  .team-section--board .team-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .team-section--departments .team-grid,
+  .team-section--directors .team-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 900px) {
+    .team-section--departments .team-grid,
+    .team-section--directors .team-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .team-section--board .team-grid,
+    .team-section--departments .team-grid,
+    .team-section--directors .team-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .empty {

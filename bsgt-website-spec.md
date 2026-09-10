@@ -295,6 +295,20 @@ Committee members with name, role, and degree programme. Photos optional — see
 consent requirement before publishing any. `navy-deep` ground — see "Light vs dark grounds"
 below.
 
+Sectioned into three fixed tiers, via a `group` field on the schema (`board` |
+`departments` | `directors`), rendered in that order regardless of the collection's own
+file order: **BSGT Board**, **Main Departments**, **Board Directors & Leads**. Each tier
+is its own grid, sorted independently by an `order` field scoped to that group (not
+global — two members in different groups can share an `order` value). Grid columns are
+explicit per group rather than a fluid auto-fit/auto-fill layout, specifically so a
+group's known member count always divides evenly across columns at every breakpoint —
+no lone card left orphaned on its own row.
+
+With no photograph yet for a member, the card shows a deliberate placeholder instead of a
+broken image or a generic avatar silhouette: a `navy-mid` panel, gold border, the
+person's own initials centred in gold serif, at the same aspect ratio a real headshot
+will eventually use — so a photo added later drops straight in with no layout reflow.
+
 ### Articles
 
 Reverse-chronological index. Filterable by tag. Individual article pages are the most
@@ -344,10 +358,11 @@ Upcoming versus past is derived from `date`. Never a manual flag.
 ```yaml
 name: string
 role: string
+group: enum               # board | departments | directors
 programme: string?
 photo: image?
 linkedin: url?
-order: number
+order: number             # scoped within group, not global
 draft: boolean            # default true
 ```
 

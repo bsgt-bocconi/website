@@ -1,15 +1,43 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
 
 interface Props {
   member: CollectionEntry<'team'>;
 }
 
 const { member } = Astro.props;
-const { name, role, programme, linkedin } = member.data;
+const { name, role, programme, photo, linkedin } = member.data;
+
+// First + last word's initial — "Niki Xanthopoulou-Sisini" -> "NX",
+// "Zeynep Eylül Öksüz" -> "ZÖ" (middle names, if any, are skipped, same
+// as how a monogram normally reads). Only used when there's no photo yet.
+function initials(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? '';
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
 ---
 
 <div class="member">
+  {
+    photo ? (
+      <div class="member-photo">
+        <Image src={photo} alt={`Photo of ${name}`} width={480} height={600} loading="lazy" />
+      </div>
+    ) : (
+      // Deliberate, not broken: a navy panel with the person's own
+      // initials, same box a real photo will fill later — not a generic
+      // silhouette avatar, which would read as a broken image rather
+      // than an intentional placeholder. aria-hidden since the name
+      // right below already gives a screen reader everything this
+      // placeholder conveys.
+      <div class="member-photo member-photo--placeholder" aria-hidden="true">
+        <span class="initials">{initials(name)}</span>
+      </div>
+    )
+  }
   <h3>{name}</h3>
   <p class="role">{role}</p>
   {programme && <p class="programme">{programme}</p>}
@@ -21,7 +49,43 @@ const { name, role, programme, linkedin } = member.data;
 </div>
 
 <style>
+  /* 4:5 — the aspect ratio the eventual real headshots will use, so a
+     photo arriving later drops straight into this box with no reflow.
+     Border + background apply in both states (photo and placeholder):
+     the same frame either way, and if a future photo ever fails to
+     load, this navy fill is what's left behind instead of a blank gap. */
+  .member-photo {
+    aspect-ratio: 4 / 5;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--color-navy-mid);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
+  }
+
+  .member-photo :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .member-photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .initials {
+    font-family: var(--font-serif);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    letter-spacing: 0.03em;
+    /* Verified: gold vs navy-mid is ~11.1:1, same figure already
+       verified for the division cards' gold text on this background. */
+    color: var(--color-gold);
+  }
+
   .member h3 {
+    margin-top: 1rem;
     font-family: var(--font-serif);
     font-size: var(--text-lg);
   }
