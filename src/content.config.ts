@@ -18,16 +18,25 @@ const articles = defineCollection({
 
 const events = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/events' }),
-  schema: z.object({
-    title: z.string(),
-    date: z.coerce.date(),
-    startTime: z.string().optional(),
-    location: z.string(),
-    type: z.enum(['lecture', 'workshop', 'social', 'other']),
-    description: z.string(),
-    registrationUrl: z.string().url().optional(),
-    draft: z.boolean().default(true),
-  }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      date: z.coerce.date(),
+      startTime: z.string().optional(),
+      location: z.string(),
+      type: z.enum(['lecture', 'workshop', 'social', 'other']),
+      description: z.string(),
+      registrationUrl: z.string().url().optional(),
+      // Optional, same as Team's `photo` and Slide's `image` — most
+      // events won't have a photo, especially upcoming ones. imageAlt is
+      // separate rather than reusing another field (unlike Slide, which
+      // doubles `caption` as alt text): an event photo needs a real
+      // description of what's actually in the picture, which usually has
+      // nothing to do with the event's own title or description text.
+      image: image().optional(),
+      imageAlt: z.string().optional(),
+      draft: z.boolean().default(true),
+    }),
 });
 
 const team = defineCollection({

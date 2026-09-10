@@ -280,7 +280,11 @@ normal-weight label) — is derived from the dates at build time, never hardcode
 whole section is absent from the page outright once the build date is past the round's
 close date, so it can never sit there advertising a closed round. Dates and copy live in
 one data file, not the template — see CLAUDE.md's "Recruitment timeline" section for the
-exact mechanism.
+exact mechanism. The "24 September" milestone shares its date with a real published
+event (§4/§3 Events), but doesn't link to it — considered and deliberately skipped, since
+linking exactly one of three otherwise-identical, non-interactive markers would read as
+an inconsistency rather than a feature; see CLAUDE.md's "Events page" section for the
+full reasoning.
 
 **Recruiting block**, at the end of the page: a quiet, large statement ("Think beyond the
 vessel.") set back against the navy — deliberately lower-contrast than the foreground, but
@@ -346,6 +350,15 @@ Two groups on one page: upcoming first, then past. Past events are not clutter �
 evidence of activity that makes the association look real to an outside reader. Do not hide
 them. `navy-deep` ground — see "Light vs dark grounds" below.
 
+Each event optionally carries a photo (`image` + a separate `imageAlt` describing what's
+actually in the picture, not the event's own title/description restated). With no photo,
+the listing shows a deliberate placeholder instead of a gap or a generic image icon — the
+same solid-panel-plus-gold-border-plus-centred-label system `/team` uses for a missing
+headshot, with the event's own type standing in for a person's initials. Photos are wide
+(16:9), not the portrait ratio Team uses — event photography reads more naturally that
+way; the placeholder *system* is what's shared between the two pages, not the exact
+aspect ratio.
+
 ---
 
 ## 4. Content model
@@ -374,6 +387,8 @@ location: string
 type: enum                # lecture | workshop | social | other
 description: string
 registrationUrl: url?
+image: image?
+imageAlt: string?          # required in practice whenever image is set
 draft: boolean            # default true
 ```
 Upcoming versus past is derived from `date`. Never a manual flag.

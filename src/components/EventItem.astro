@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
 import { capitalize, formatDate } from '../lib/format';
 
 interface Props {
@@ -7,10 +8,28 @@ interface Props {
 }
 
 const { entry } = Astro.props;
-const { title, date, startTime, location, type, description, registrationUrl } = entry.data;
+const { title, date, startTime, location, type, description, registrationUrl, image, imageAlt } =
+  entry.data;
 ---
 
 <div class="event">
+  {
+    image ? (
+      <div class="event-photo">
+        <Image src={image} alt={imageAlt ?? ''} width={960} height={540} loading="lazy" />
+      </div>
+    ) : (
+      // Same deliberate-placeholder system as TeamMemberCard.astro's
+      // missing-photo state (navy-mid panel, gold border, gold serif
+      // centred text) — not a generic image icon, which would read as
+      // broken rather than intentional. The event's own type stands in
+      // for a person's initials: the one short, meaningful label an
+      // event actually has to offer in place of a photo.
+      <div class="event-photo event-photo--placeholder" aria-hidden="true">
+        <span class="placeholder-label">{capitalize(type)}</span>
+      </div>
+    )
+  }
   <p class="type">{capitalize(type)}</p>
   <h3>{title}</h3>
   <p class="meta">
@@ -31,7 +50,45 @@ const { title, date, startTime, location, type, description, registrationUrl } =
 </div>
 
 <style>
+  /* 16:9 — event photography (a venue, a stand, a crowd) reads more
+     naturally wide than the 4:5 portrait TeamMemberCard uses for
+     headshots; the placeholder treatment itself (panel, border, centred
+     gold label) is what's shared with Team, not the exact ratio. Capped
+     width, not full-bleed: at this page's wrap-wide measure, a full-width
+     16:9 image would tower over the text beneath it. */
+  .event-photo {
+    max-width: 36rem;
+    aspect-ratio: 16 / 9;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--color-navy-mid);
+    border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
+  }
+
+  .event-photo :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .event-photo--placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .placeholder-label {
+    font-family: var(--font-serif);
+    font-size: var(--text-lg);
+    letter-spacing: 0.02em;
+    /* Verified: gold vs navy-mid is ~11.1:1, the same figure already
+       established for the division cards and the team placeholders. */
+    color: var(--color-gold);
+  }
+
   .type {
+    margin-top: 1.25rem;
     font-family: var(--font-sans);
     font-size: var(--text-xs);
     /* Not slate — fails AA on the events page's navy-deep ground. */

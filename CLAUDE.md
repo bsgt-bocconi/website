@@ -609,8 +609,13 @@ written in British English throughout, that was wrong before.
 - **Article**: title, slug (stable, never change post-publish), summary,
   author, date, tags, heroImage?, draft (default true).
 - **Event**: title, date, startTime?, location, type (lecture|workshop|
-  social|other), description, registrationUrl?, draft (default true).
-  Upcoming/past is derived from `date`, never a manual flag.
+  social|other), description, registrationUrl?, image?, imageAlt?, draft
+  (default true). Upcoming/past is derived from `date`, never a manual
+  flag. `image`/`imageAlt` are a pair, not one dual-purpose field like
+  Slide's `caption` — an event photo needs a real description of what's
+  actually in it, which is rarely related to the event's own title or
+  description text. See "Events page" below for the missing-photo
+  placeholder.
 - **Team member**: name, role, group (`board`|`departments`|`directors`),
   programme?, photo?, linkedin?, order, draft (default true). `group`
   sections `/team` into three tiers, rendered in that fixed order
@@ -632,6 +637,57 @@ filter. If filtering drops the carousel to one slide or zero, that's the
 correct, honest state — `Carousel.astro` already handles both; don't "fix"
 it by making placeholders un-draftable again to keep the carousel looking
 full.
+
+## Events page
+
+**"Associations on Display" (24 September 2026) is the first real, non-draft event** —
+`/events` had never shown anything but its empty state before this. Verified, not
+assumed, that the page actually holds up with real content: the upcoming/past split
+(both already existed in `events.astro`, driven by comparing each event's `date` against
+`todayStart`, today's date with the time zeroed out) correctly keeps this event in
+"Upcoming" through the whole of 24 September itself and moves it to "Past" starting 25
+September — checked with an isolated date simulation (mocked `now` values before, on,
+and the day after the event date), not by changing the system clock. With exactly one
+upcoming event and zero past ones, the page reads as a deliberate single-event listing,
+not a list template with something missing — no dangling dividers, no "Past" heading
+rendering over an empty list (that section already only rendered when `past.length > 0`,
+unchanged from before).
+
+**`EventItem.astro` now handles a photo (or its absence) the same way
+`TeamMemberCard.astro` handles a missing headshot** — solid `navy-mid` panel, gold
+border, centred gold Newsreader text — but at `16:9`, not Team's `4:5`: event photography
+(a venue, a stand, a crowd) reads more naturally wide than a portrait headshot does; the
+shared part is the *placeholder system* (panel + border + centred gold label), not the
+exact ratio. Capped at `max-width: 36rem`, not full-bleed to the card's own width — at
+`wrap-wide`'s measure a full-width `16:9` photo would tower over the text below it. When
+there's no photo, the placeholder's centred label is the event's own `type`
+(capitalised) — the one short, meaningful thing an event has to offer in place of a
+photo, the same role a person's initials play on `/team`. `image`/`imageAlt` are a pair
+on the schema (see "Content model" above) — always supply a real, specific `imageAlt`
+describing what's actually in the photo, not the event's own title or description
+restated; for "Associations on Display" that's *"Association stands under blue gazebos
+along a Bocconi campus walkway during Welcome Days, with students visiting them"* —
+deliberately not naming BSGT, since BSGT itself isn't identifiable in that particular
+photo.
+
+**The source photo lives at `src/assets/events/associations-on-display.jpg`** (was
+supplied as a 2.2MB PNG; converted to JPEG via `sharp` before import, ~236KB — still
+large enough that Astro's own pipeline re-encodes it to WebP at build time, ~64KB in the
+final output). Same rule as the division-card photos: real photography goes in
+`src/assets/`, not `public/`, specifically so `astro:assets`/`<Image>` can optimise it —
+explicit `width`/`height`, `loading="lazy"`.
+
+**The homepage recruitment timeline's "24 September — Associations on display" milestone
+deliberately does *not* link to this event.** Considered and rejected: the timeline's
+whole visual system (marker + date + label, three identical-looking items) has no
+interactive affordance anywhere in it today, and linking exactly one of the three
+milestones would read as an inconsistency rather than a deliberate feature — two plain
+items and one that's suddenly clickable, with no visual cue distinguishing which is
+which before a reader hovers. The timeline's actual job, per its own "Join BSGT" heading,
+is leading into the Apply button below it, not general site navigation — `/events` is
+already one click away via the main nav regardless. If a future pass wants this link, it
+should come with its own visual treatment (e.g. only the linked milestone gets an
+underline or a visible affordance) rather than a bare, silent `<a>` around one date.
 
 ## Team page
 
