@@ -505,6 +505,28 @@ The full association name has two forms, applied consistently sitewide (see spec
 
 Doesn't apply to "BSGT" itself, which is used freely in both contexts.
 
+## Social preview image
+
+`public/og-image.jpg` (1200×630) is the default share-card image for **every** page —
+`BaseLayout.astro`'s `ogImage` prop defaults to `/og-image.jpg`, so a page only needs to
+pass its own `ogImage` if it wants a *different* image, not to opt into having one at all.
+Before this, no page passed `ogImage`, so `og:image`/`twitter:image` never rendered
+anywhere and `twitter:card` was stuck on `summary` (no image ever shows on `summary`,
+regardless of whether one's set) — fixed by making the default non-empty and setting
+`twitter:card` to `summary_large_image` unconditionally.
+
+Lives in `public/`, not `src/assets/` — deliberately. `astro:assets`
+(`import`-and-optimise, used for the division-card photos) hashes the output filename on
+every build, which is exactly wrong for a URL crawlers and social platforms need to
+resolve indefinitely, potentially long after whatever build produced a given hash. A
+file in `public/` gets served at that exact path, unhashed, forever.
+
+`og:image:width`/`height` are fixed at `1200`/`630` (the actual asset's size), not derived
+from the image — fine while every page shares one image; if a page is ever given its own
+differently-sized `ogImage` (e.g. a future per-article card, explicitly out of scope for
+now), these need to become props too. `og:locale` is `en_GB`, not `en_US` — this site is
+written in British English throughout, that was wrong before.
+
 ## Hard constraints (do not introduce without an explicit decision)
 
 - No database. No server-side logic. No authentication.

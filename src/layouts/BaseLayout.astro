@@ -11,15 +11,25 @@ interface Props {
   title: string;
   /** Meta description; article pages should pass their `summary`. */
   description: string;
-  /** Root-relative path to a 1200×630 share image, when one exists. */
+  /**
+   * Root-relative path to a 1200×630 share image. Defaults to the
+   * site-wide card (public/og-image.jpg) below, so every page gets a
+   * correct social preview without having to pass this — a page only
+   * needs to supply this prop if it wants its *own* image instead (e.g.
+   * a future per-article card), not to opt into having one at all.
+   */
   ogImage?: string;
   ogType?: 'website' | 'article';
 }
 
-const { title, description, ogImage, ogType = 'website' } = Astro.props;
+const { title, description, ogImage = '/og-image.jpg', ogType = 'website' } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-const ogImageURL = ogImage ? new URL(ogImage, Astro.site).href : undefined;
+// Must live in public/, not src/assets — astro:assets hashes filenames
+// on build (a new filename every time the source image changes), and
+// this needs one stable absolute URL crawlers can fetch indefinitely,
+// not a build-specific one.
+const ogImageURL = new URL(ogImage, Astro.site).href;
 
 const organizationJsonLd = {
   '@context': 'https://schema.org',
@@ -61,14 +71,25 @@ const organizationJsonLd = {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalURL} />
-    <meta property="og:locale" content="en_US" />
-    {ogImageURL && <meta property="og:image" content={ogImageURL} />}
+    <!-- British English throughout the site — en_US was wrong from the start. -->
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:image" content={ogImageURL} />
+    <!-- Fixed at the default card's actual size (public/og-image.jpg,
+         1200×630) rather than derived from ogImage — fine while every
+         page uses that one image. Revisit if/when a page ever passes a
+         differently-sized image (e.g. a future per-article card). -->
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="BSGT — Bocconi Shipping & Global Trade Student Association. Navigating the future of shipping and maritime finance."
+    />
 
     <!-- Twitter -->
-    <meta name="twitter:card" content={ogImageURL ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    {ogImageURL && <meta name="twitter:image" content={ogImageURL} />}
+    <meta name="twitter:image" content={ogImageURL} />
 
     <!-- Preload primary (latin) font subsets -->
     <link
