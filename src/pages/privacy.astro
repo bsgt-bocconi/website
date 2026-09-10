@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { CONTACT_EMAIL } from '../data/contact';
 
 /**
  * Data controller: whether this is BSGT or Università Bocconi is an
@@ -16,7 +17,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   <article class="wrap privacy">
     <header class="page-header">
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated 8 September 2026.</p>
+      <p class="updated">Last updated 10 September 2026.</p>
     </header>
 
     <div class="prose">
@@ -72,10 +73,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       <h2>Contact</h2>
       <p>
         Questions about this policy or your data can be sent to
-        <a href="mailto:as.bsgt@studbocconi.it">as.bsgt@studbocconi.it</a>.
-      </p>
-      <p class="placeholder-note">
-        Placeholder contact — confirm this is the address BSGT wants published here before launch.
+        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
       </p>
     </div>
   </article>
@@ -95,13 +93,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     margin-top: 0.75rem;
     font-family: var(--font-sans);
     font-size: var(--text-sm);
-    color: var(--color-slate);
-  }
-
-  .placeholder-note {
-    margin-top: 0.5rem !important;
-    font-size: var(--text-xs);
-    font-style: italic;
     color: var(--color-slate);
   }
 </style>

@@ -232,9 +232,9 @@ A couple of things worth knowing:
 > - A second person with access to each of the above, so continuity doesn't depend on
 >   one person (see `bsgt-website-spec.md` §10 — this is an open item from the original
 >   brief)
-> - A current contact email for BSGT itself (also referenced from the privacy policy —
->   check `src/pages/privacy.astro` and `src/pages/about.astro` for a placeholder
->   address that needs confirming/replacing before this goes live, if it hasn't been
->   already)
+> - A current contact email for BSGT itself — confirmed as `as.bsgt@unibocconi.it` and
+>   centralised in `src/data/contact.ts` (`CONTACT_EMAIL`), referenced from
+>   `src/pages/privacy.astro`. Update the one constant there if it ever changes, not the
+>   page.
 
 _(fill in above)_
