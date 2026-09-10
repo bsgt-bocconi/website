@@ -82,7 +82,7 @@ slug: red-sea-shipping-rates
 summary: "One or two sentences. This is also used as the meta description and social share text."
 author: "Jane Doe"
 date: 2026-10-01
-tags: ["Maritime Economics", "Shipping"]
+tags: ["Maritime Finance", "Shipping"]
 draft: false
 ---
 
@@ -97,7 +97,7 @@ Notes on the fields:
   search ranking it's built up. Pick it carefully up front.
 - **`author`** can be a single name (`"Jane Doe"`) or a list for multiple authors:
   `["Jane Doe", "John Smith"]`.
-- **`tags`** are free text (e.g. `"Maritime Economics"`) — the site automatically
+- **`tags`** are free text (e.g. `"Maritime Finance"`) — the site automatically
   builds a tag page for every tag that appears on at least one published article. No
   separate setup needed.
 - **`draft`** is the important one. **A new article file defaults to `draft: true` if

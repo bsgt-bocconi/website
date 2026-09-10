@@ -122,6 +122,19 @@ const organizationJsonLd = {
 </html>
 
 <style>
+  /* Absorbs any leftover height on a page shorter than the viewport, so
+     <footer> (a flex sibling, body is display:flex/flex-direction:column
+     in global.css) always ends up at the bottom of the viewport at
+     minimum instead of leaving a gap of body's own background beneath
+     it. flex: 1 sets flex-basis: 0, but this doesn't risk clipping a
+     page taller than the viewport: a flex item's default min-height is
+     auto, which for a column flex container resolves to its content's
+     own minimum height, not 0 — content is what protects itself here,
+     no explicit min-height override needed. */
+  main {
+    flex: 1;
+  }
+
   .skip-link:focus {
     position: fixed;
     top: 0.5rem;

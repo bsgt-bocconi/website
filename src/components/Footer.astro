@@ -1,7 +1,7 @@
 ---
 import Mark from './Mark.astro';
 import SocialIcon from './SocialIcon.astro';
-import { SOCIAL_LINKS } from '../data/contact';
+import { CONTACT_EMAIL, SOCIAL_LINKS } from '../data/contact';
 
 const year = new Date().getFullYear();
 
@@ -35,17 +35,25 @@ const nav = [
           }
         </ul>
       </nav>
-      <ul class="social-icons" aria-label="BSGT on social media">
-        {
-          SOCIAL_LINKS.map((link) => (
-            <li>
-              <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}>
-                <SocialIcon name={link.icon} />
-              </a>
-            </li>
-          ))
-        }
-      </ul>
+      <div class="footer-contact">
+        <a class="footer-email" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        <ul class="social-icons" aria-label="BSGT on social media">
+          {
+            SOCIAL_LINKS.map((link) => (
+              <li>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={link.name}
+                >
+                  <SocialIcon name={link.icon} />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
     </div>
   </div>
   <div class="wrap">
@@ -146,6 +154,33 @@ const nav = [
     flex-direction: column;
     align-items: flex-end;
     gap: 1rem;
+  }
+
+  .footer-contact {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  /* Quiet and small, per spec — the homepage's own contact section
+     (.email-link there) is the full-strength version of this link; this
+     is just enough for it to appear on every page without competing
+     with the social icons next to it. Pulled from src/data/contact.ts,
+     never hardcoded — same source the homepage section and the
+     Organization JSON-LD's ContactPoint use. */
+  .footer-email {
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-paper);
+    opacity: 0.75;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .footer-email:hover {
+    color: var(--color-gold);
+    opacity: 1;
   }
 
   .social-icons {

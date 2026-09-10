@@ -4,7 +4,7 @@ slug: container-rates-red-sea-diversions
 summary: "PLACEHOLDER — not a real article. Template-testing copy only: a mock explainer on how Red Sea diversions reshape container freight rates and transit times."
 author: "Placeholder Author"
 date: 2026-02-10
-tags: ["Maritime Economics", "Shipping"]
+tags: ["Maritime Finance", "Shipping"]
 draft: true
 ---
 
@@ -14,7 +14,7 @@ draft: true
 
 The paragraphs below exist to verify that the article template — headline, byline, standfirst, body typography, headings, lists, blockquotes, and the related-articles block — all render the way they're supposed to. None of the claims in this placeholder should be assumed to be true, current, or checked against any real source.
 
-Filler sentence one, filler sentence two, filler sentence three. This paragraph is deliberately generic so that nobody skimming the rendered page could mistake it for a real piece of maritime-economics writing.
+Filler sentence one, filler sentence two, filler sentence three. This paragraph is deliberately generic so that nobody skimming the rendered page could mistake it for a real piece of maritime-finance writing.
 
 ### A sub-heading, for template testing
 

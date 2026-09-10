@@ -2,12 +2,52 @@
 import { Image } from 'astro:assets';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Mark from '../components/Mark.astro';
-import Carousel from '../components/Carousel.astro';
 import VesselSilhouette from '../components/VesselSilhouette.astro';
 import ApplyButton from '../components/ApplyButton.astro';
 import SocialIcon from '../components/SocialIcon.astro';
 import { divisions } from '../data/divisions';
 import { CONTACT_EMAIL, SOCIAL_LINKS } from '../data/contact';
+import { RECRUITMENT_MILESTONES, RECRUITMENT_CLOSES } from '../data/timeline';
+
+// State is derived from the dates in src/data/timeline.ts every build,
+// never hardcoded here — see that file's comment. Day-granularity UTC
+// comparison throughout: these are whole-day milestones ("11 September"),
+// not specific moments, and a fixed UTC interpretation keeps the result
+// deterministic regardless of the machine/timezone a build runs in.
+function toUTCMidnight(iso: string): number {
+  return new Date(`${iso}T00:00:00Z`).getTime();
+}
+
+const buildNow = new Date();
+const todayUTC = Date.UTC(buildNow.getUTCFullYear(), buildNow.getUTCMonth(), buildNow.getUTCDate());
+
+// Time-limited content: once the round has closed, this section must
+// stop rendering entirely rather than sit on the page advertising a
+// closed round — checked against the same date the last milestone uses.
+const showRecruitmentTimeline = todayUTC <= toUTCMidnight(RECRUITMENT_CLOSES);
+
+const monthDayFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long' });
+
+let currentAssigned = false;
+const timelineMilestones = RECRUITMENT_MILESTONES.map((milestone) => {
+  const milestoneUTC = toUTCMidnight(milestone.date);
+  let state: 'past' | 'current' | 'future';
+  if (milestoneUTC < todayUTC) {
+    state = 'past';
+  } else if (!currentAssigned) {
+    // First milestone that isn't past yet — "current or next" per spec,
+    // one and only one milestone ever gets this state.
+    state = 'current';
+    currentAssigned = true;
+  } else {
+    state = 'future';
+  }
+  return {
+    ...milestone,
+    state,
+    formattedDate: monthDayFormatter.format(new Date(milestoneUTC)),
+  };
+});
 ---
 
 <BaseLayout
@@ -149,7 +189,24 @@ import { CONTACT_EMAIL, SOCIAL_LINKS } from '../data/contact';
     </div>
   </section>
 
-  <Carousel />
+  {
+    showRecruitmentTimeline && (
+      <section class="timeline-section on-dark">
+        <div class="wrap-wide">
+          <h2>Join BSGT</h2>
+          <ol class="timeline">
+            {timelineMilestones.map((milestone) => (
+              <li class={`timeline-item timeline-item--${milestone.state}`}>
+                <span class="timeline-marker" aria-hidden="true" />
+                <span class="timeline-date">{milestone.formattedDate}</span>
+                <span class="timeline-label">{milestone.label}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    )
+  }
 
   <section class="recruiting on-dark">
     <div class="wrap-wide">
@@ -974,10 +1031,159 @@ import { CONTACT_EMAIL, SOCIAL_LINKS } from '../data/contact';
     text-underline-offset: 0.15em;
   }
 
+  /* Recruitment timeline — sits directly above .recruiting, leading into
+     it, so this section shares its padding rhythm rather than getting
+     its own top/bottom breathing room on both sides. Time-limited: see
+     index.astro's frontmatter — this whole section is absent from the
+     DOM outright once showRecruitmentTimeline is false, not hidden with
+     CSS, so there's nothing left over to accidentally reveal later. */
+  .timeline-section {
+    background: var(--color-navy-deep);
+    /* Modest bottom padding on purpose — this section is meant to lead
+       straight into .recruiting below it (its own top padding is
+       likewise reduced from the sitewide 6rem), not sit as its own
+       isolated block with the usual breathing room on both sides. */
+    padding-block: 4rem 1rem;
+  }
+
+  .timeline-section h2 {
+    font-size: var(--text-2xl);
+    /* Same quiet section-heading treatment as .divisions-heading/
+       .contact-section h2 — paper @0.7, verified ~8.83:1 against
+       navy-deep. */
+    color: var(--color-paper);
+    opacity: 0.7;
+  }
+
+  /* Horizontal gold hairline through the marker row — the site's
+     existing hairline language (e.g. the hero's own rule, the
+     about-pair dividers), not a new visual device. ::before instead of
+     a border so it sits exactly at marker-centre height regardless of
+     label length above/below it. */
+  .timeline {
+    position: relative;
+    margin: 3rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: color-mix(in srgb, var(--color-gold) 55%, transparent);
+  }
+
+  .timeline-item {
+    position: relative;
+    flex: 1;
+    padding-top: 2.25rem;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-gold);
+    background: var(--color-navy-deep);
+    box-sizing: border-box;
+  }
+
+  /* past: marker filled */
+  .timeline-item--past .timeline-marker {
+    background: var(--color-gold);
+  }
+
+  /* current or next: marker emphasised in gold — filled, larger, with a
+     soft ring so it reads as "here" at a glance against the two plainer
+     states either side of it. */
+  .timeline-item--current .timeline-marker {
+    background: var(--color-gold);
+    width: 19px;
+    height: 19px;
+    top: -1px;
+    left: -1px;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-gold) 25%, transparent);
+  }
+
+  /* future: marker stays outlined/hollow (the base .timeline-marker
+     rule above already is) — nothing extra needed here. */
+
+  .timeline-date {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold);
+  }
+
+  .timeline-label {
+    display: block;
+    margin-top: 0.375rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    color: var(--color-paper);
+  }
+
+  /* Only "past" gets a dimmed label — "current or next" and "future"
+     both stay at normal weight per spec, distinguished from each other
+     by the marker alone (filled+emphasised vs outlined). Verified: paper
+     @0.6 vs navy-deep is ~6.68:1, comfortably past 4.5:1 AA. */
+  .timeline-item--past .timeline-label {
+    opacity: 0.6;
+  }
+
+  /* Below ~700px: stack vertically, rule runs down the left side instead
+     of across the top. */
+  @media (max-width: 700px) {
+    .timeline {
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .timeline::before {
+      top: 0;
+      bottom: 0;
+      left: 8px;
+      right: auto;
+      width: 1px;
+      height: auto;
+    }
+
+    .timeline-item {
+      padding-top: 0;
+      padding-left: 2.25rem;
+    }
+
+    .timeline-marker {
+      top: 2px;
+      left: 0;
+    }
+
+    .timeline-item--current .timeline-marker {
+      top: 1px;
+      left: -1px;
+    }
+  }
+
   /* Recruiting */
   .recruiting {
     background: var(--color-navy-deep);
-    padding-block: 6rem;
+    /* Top reduced from the previous 6rem — the timeline directly above
+       now supplies its own lead-in space, so this section doesn't also
+       need a full 6rem on top of that. Bottom stays generous: this is
+       still the transition into Contact, a separate closing block. */
+    padding-block: 2rem 6rem;
     text-align: left;
   }
 

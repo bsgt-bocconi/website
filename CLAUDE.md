@@ -37,12 +37,21 @@ redirect — this only works once deployed, not in local `astro dev`/`astro prev
 Nav is About → Team → Articles → Events, with About pointing to `/`. The homepage is a
 full-viewport hero (animated mark, staggered fade-in content, a once-per-session intro
 animation), sharing `.scroll-vessel-area` (the scroll-linked vessel background) with the
-About prose right after it, then the divisions section, the image carousel, and the
-recruiting block — each of those last three now a plain sibling with its own explicit
+About prose right after it, then the divisions section, the recruitment timeline, the
+recruiting block, and the contact section — each a plain sibling with its own explicit
 `navy-deep` background rather than sharing the vessel wrapper's, so the page still reads
 as one continuous dark surface end to end even though the ship itself only runs behind
 the hero and About. See spec §3 for the full description — don't rebuild an
 articles-led homepage, that design was retired.
+
+**The image carousel is not currently rendered on the homepage** — removed deliberately,
+not by accident. `Carousel.astro` and the `slides` content collection are both still in
+the repo, untouched and fully working; they're just not imported/used from `index.astro`
+any more. Reinstate by importing `Carousel` in `index.astro` and rendering `<Carousel />`
+wherever it should sit again — no other changes needed, the component and its data
+source were left exactly as they were. Worth having real photography ready before
+bringing it back; see "Build vs. launch" below for why placeholder slides were never meant
+to be the permanent state.
 
 **Divisions.** `src/data/divisions.ts` — three fixed items (Events, Research, Marketing),
 each `{ slug, name, tagline, description }` — is the single source of truth for both the
@@ -242,7 +251,13 @@ higher still — all well past 4.5:1 AA.
 *Footer* (`Footer.astro`, every page): the same two `SOCIAL_LINKS` as small icon-only
 links next to the page nav, `target="_blank" rel="noopener noreferrer"`, each with its
 own `aria-label` (its `name`) since there's no visible text here to supply an accessible
-name the way the homepage section's icon+label pairing does.
+name the way the homepage section's icon+label pairing does. `CONTACT_EMAIL` sits right
+beside them, `.footer-contact` grouping the two — a small, quiet `mailto:` link (paper
+@0.75, underlined, gold on hover), deliberately not the full-strength treatment
+`.email-link` gets on the homepage's own contact section; that fuller version is
+untouched, this is just enough for the address to be reachable from every page, not a
+second copy of the homepage block. Same `CONTACT_EMAIL` constant either way — never
+hardcode the address a second time.
 
 **`SocialIcon.astro`**: hand-drawn inline SVG (`rect`/`circle`/`line`/`path` primitives,
 `currentColor` stroke) for `instagram` and `linkedin` — no icon library, no CDN, nothing
@@ -251,6 +266,39 @@ fetched at runtime, per the no-third-party-embeds constraint below. Always
 accessible name — that's the caller's job (visible text on the homepage, `aria-label` on
 the enclosing link in the footer). Don't call it without arranging one or the other.
 
+## Recruitment timeline
+
+Homepage only, `<section class="timeline-section">` directly above `.recruiting`,
+sharing its lead-in: "Join BSGT" over a three-milestone timeline (horizontal gold
+hairline with three markers at desktop widths, stacking to a vertical rule down the left
+side below ~700px). Dates and labels live in `src/data/timeline.ts`
+(`RECRUITMENT_MILESTONES`), never in the template — running this again next year is
+editing that file only.
+
+**State is derived from the dates at build time, every build — never hardcoded.**
+`index.astro`'s frontmatter compares each milestone's date against the build's own
+`new Date()`, both normalised to UTC midnight (these are whole-day milestones, not
+specific moments, so day-granularity comparison is deliberate — see
+`toUTCMidnight()`), and assigns exactly one of three states per milestone: `past`
+(marker filled solid gold, label dimmed to paper @0.6 — verified ~6.68:1, still clear of
+4.5:1 AA), `current` (the first milestone that isn't past yet — filled, larger, with a
+soft glow ring, label at normal weight), or `future` (marker outlined/hollow, label at
+normal weight). Exactly one milestone is ever `current`; the loop that assigns it
+(`currentAssigned`) stops handing it out after the first match, so if a build ever runs
+exactly *on* a milestone date, that milestone becomes `current` rather than `past` (a
+milestone's own day hasn't finished being "now" yet).
+
+**The whole section is absent from the DOM outright after 30 September 2026** — not
+hidden with CSS, not still-present-but-empty, genuinely not rendered — checked via
+`showRecruitmentTimeline` (`todayUTC <= RECRUITMENT_CLOSES`) wrapping the `<section>` in
+a `{condition && (...)}` block. This is time-limited content: it must not still be
+advertising a closed recruitment round in November. Verified by isolated simulation, not
+by moving the system clock — mocked "now" values before, on, and after the close date
+all produced the correct `true`/`true`/`false` result before this shipped. **To run the
+same timeline again for a future round, only `src/data/timeline.ts` needs editing** —
+new `RECRUITMENT_MILESTONES` dates/labels and a new `RECRUITMENT_CLOSES` date; nothing
+in `index.astro` needs to change.
+
 **Organization JSON-LD** (`BaseLayout.astro`): `sameAs` (both `SOCIAL_LINKS` URLs) and a
 `ContactPoint` (`CONTACT_EMAIL`) were added once real, confirmed profiles existed — both
 were deliberately omitted before that, since publishing `sameAs` against unconfirmed or
@@ -258,34 +306,42 @@ placeholder profiles would be worse than omitting it. Sourced from the same
 `src/data/contact.ts`, so the structured data can't drift from what the page itself
 actually publishes.
 
-**Fixed — the footer's light gap on dark pages.** `Footer.astro`'s `.site-footer` used to
-carry `margin-top: 4rem`. A margin sits *outside* an element's own background, so it
-exposed whatever was behind it — and that was never any specific page's ground, it was
-`body`'s own default `background: paper` from `global.css`, since nothing paints behind
-`<main>` and `<footer>` except `body` itself. On light (`paper`) pages the exposed strip
-happened to match its surroundings, so it read as intentional spacing and no one noticed
-anything wrong. On every `navy-deep` page (homepage, `/team`, `/events`) the same margin
-exposed that same `paper` strip regardless — a jarring light band between two dark
-surfaces that were supposed to read as one continuous ground.
+**Fixed — the footer's light gap, in two separate stages.** Stage one:
+`Footer.astro`'s `.site-footer` used to carry `margin-top: 4rem`. A margin sits *outside*
+an element's own background, so it exposed whatever was behind it — and that was never
+any specific page's ground, it was `body`'s own default `background: paper` from
+`global.css`, since nothing paints behind `<main>` and `<footer>` except `body` itself.
+On light (`paper`) pages the exposed strip happened to match its surroundings, so it read
+as intentional spacing and no one noticed anything wrong; on every `navy-deep` page
+(homepage, `/team`, `/events`) the same margin exposed that same `paper` strip regardless
+— a jarring light band between two dark surfaces meant to read as one continuous ground.
+Fixed by deleting the margin outright, not replacing it with something page-aware — every
+page that renders `<Footer />` (`.article`, `.team-page`, `.events-page`,
+`.division-page`, `.privacy`, the homepage's `.contact-section`) already ends in its own
+`padding-block` reaching `4rem`, in *that page's own* correct background colour; the
+footer's margin was redundant space stacked on top of that, in the one place sitewide
+where spacing came from `body`'s background instead of the page's own.
 
-The fix wasn't to replace the margin with something page-aware — every page that renders
-`<Footer />` already had its own answer to "how much space before the footer," just
-inconsistently applied twice. `.article`, `.team-page`, `.events-page`, `.division-page`,
-`.privacy`, and the homepage's `.contact-section` all already end in their own
-`padding-block` (or equivalent) ending in `4rem`, in *that page's own* correct background
-colour — a light `4rem` of `.article`'s own padding on article pages, a dark `4rem` of
-`.team-page`'s own padding on `/team`, and so on. The footer's `margin-top: 4rem` was
-redundant extra space stacked on top of that, and it was the one instance, sitewide, of
-spacing coming from `body`'s background instead of the page's own. Deleting it was the
-whole fix: `.site-footer` now has no `margin-top` at all, just its existing
-`padding-block: 2.5rem 1.5rem` for the footer's own internal breathing room. It sits flush
-against whatever precedes it on every page, and since every page already pads its own
-ending correctly, "flush" is exactly right everywhere — continuous dark-into-dark on the
-homepage/`/team`/`/events`, and a clean, deliberate light-into-dark edge on article pages
-(itself correct per "Light vs dark grounds" below — the footer is dark on every page, so
-that boundary is supposed to exist on light pages, just without an extra stray gap in
-front of it). Verified by screenshot at the bottom of all four page types, not just
-re-inspecting the CSS.
+Stage two, found afterwards: a **second, separate** cause produced the same visible
+symptom specifically on short pages — `/articles` with every article still `draft: true`
+being the one that surfaced it, since it's short enough in production to matter. With the
+margin gone, the footer sits flush against whatever precedes it — correct — but on a page
+whose *total* content (everything above the footer) is shorter than the viewport, there
+was still nothing making the footer itself sit at the bottom of the viewport. The leftover
+viewport space below the footer showed `body`'s own background once again, same
+underlying cause as stage one (nothing paints behind the footer except `body`) via a
+different route (page too short, not a stray margin). Fixed with the standard sticky-
+footer pattern: `body` is `display: flex; flex-direction: column; min-height: 100dvh` in
+`global.css`, and `<main>` gets `flex: 1` in `BaseLayout.astro` to absorb any leftover
+height, pushing `<footer>` to the bottom of the viewport at minimum on a short page while
+a normally long page scrolls exactly as before (a flex item's default `min-height: auto`
+protects its content from being clipped by `flex-basis: 0`, so this doesn't risk cutting
+off a tall page's content). Verified, not assumed: after the fix,
+`document.documentElement.scrollHeight` was measured `>= window.innerHeight` on every
+page shape at every width sampled (360/768/1280/1920px) — no page comes up short any
+more, on light or dark ground alike. Screenshot the bottom of a genuinely short page
+(currently `/articles`, since real articles will eventually make it long enough that this
+stops being the easiest page to check on) if you ever touch this area again.
 
 `/team` and `/events` are also `navy-deep` now — see "Light vs dark grounds" below
 before touching either.
@@ -438,7 +494,8 @@ Two container utilities in `global.css`, both `margin-inline: auto` + `padding-i
   shared sitewide, including by the pages that must stay narrow (see "Light vs dark
   grounds" below).
 - **`.wrap-wide`** — 75rem (1200px). The association-facing container: homepage (hero,
-  About, divisions, carousel, recruiting all use it now), `/team`, `/events`. Exists
+  About, divisions, the timeline, recruiting, contact all use it), `/team`, `/events`.
+  Exists
   specifically so widening those pages doesn't touch `.wrap` and therefore doesn't touch
   articles.
 

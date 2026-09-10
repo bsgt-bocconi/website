@@ -11,7 +11,7 @@
 ## 1. What this is
 
 BSGT is a recognised student association at Università Bocconi focused on shipping,
-maritime economics, and global trade. It is interdisciplinary by design, drawing students
+maritime finance, and global trade. It is interdisciplinary by design, drawing students
 from economics, management, finance, international relations, operations, law, and
 sustainability.
 
@@ -41,7 +41,8 @@ and general search traffic arriving at individual articles (reach).
 
 "No client-side rendering for content" means what it says — content is not JS-rendered. It
 does not forbid small, scoped interaction-only scripts that add no content of their own: the
-homepage carousel's keyboard-arrow handling, its once-per-session intro-animation check, and
+carousel's keyboard-arrow handling (used on `/divisions/marketing`, not currently the
+homepage — see §3), the once-per-session intro-animation check, and
 the scroll-linked vessel's motion loop are the only such scripts on the site (see §3). The
 divisions section used to have a fourth (a pinned-sequence rAF loop) but that was removed
 and replaced with pure CSS — see §3's "Divisions". Nothing else should use client-side JS.
@@ -55,7 +56,8 @@ surface near zero. Do not introduce any of them without an explicit decision to 
 ## 3. Sitemap
 
 ```
-/                       Home / About — hero, about content, divisions, carousel, recruiting
+/                       Home / About — hero, about content, divisions, timeline, recruiting,
+                        contact
 /team                   The Team
 /articles               Article index
 /articles/[slug]        Individual article
@@ -161,8 +163,8 @@ its own measure. See the copy in the repo (`src/pages/index.astro`) for the exac
 wording, which should be treated as fixed unless BSGT itself asks for a copy change;
 don't silently rewrite it.
 
-**Divisions**, its own section after the vessel-wrapped hero/About region ends and before
-the carousel: "One vision, supported by three divisions" above **stacking cards, pure
+**Divisions**, its own section after the vessel-wrapped hero/About region ends: "One
+vision, supported by three divisions" above **stacking cards, pure
 CSS, no JavaScript** (Events, Research, Marketing). Cards sit in normal document flow;
 each is `position: sticky` at its own increasing `top` offset (a base clearance that
 accounts for the site header's height, plus 12px per card), so as the reader scrolls,
@@ -248,7 +250,8 @@ the repo for the exact wording, same rule as the About content above.
 header, its description as an opening paragraph, then real content specific to that
 division — Research shows the most recent non-draft articles with a link to the full
 index, Events shows upcoming non-draft events with a link to the full events page,
-Marketing embeds the homepage's own carousel — then a clearly-marked placeholder section
+Marketing embeds the site's `<Carousel />` component (not currently used on the homepage
+itself — see §3) — then a clearly-marked placeholder section
 (matching the site's existing placeholder treatment) for detail to be written later, an
 Apply button to the same external form as the homepage recruiting block, and a link back
 to `/`. If a division's real content is empty (e.g. everything is still `draft: true`),
@@ -257,12 +260,27 @@ already established on `/articles` and `/events` — not a broken page. `navy-de
 ground, same as the homepage; reached only from the homepage blocks, not added to the
 nav.
 
-**Image carousel.** A CSS scroll-snap carousel (no library), swipeable and keyboard-arrow
-navigable, that must not trap focus. Slides are a content collection (§4) with the same
-`draft` gate as articles/events/team — one real slide exists (`brand/vessel.jpg`); the rest
-are placeholder slides, clearly marked, `draft: true` until real photography is supplied.
-Whatever that leaves in production — one slide, several, or none — is the honest state; the
-carousel handles it gracefully rather than padding itself out with placeholders.
+**Image carousel — currently not rendered on the homepage.** Removed deliberately (there
+was no real photography to show), not deleted: `Carousel.astro` and the `slides` content
+collection are both still in the repo and still fully working, and the component is still
+actively used on `/divisions/marketing`. A CSS scroll-snap carousel (no library),
+swipeable and keyboard-arrow navigable, that must not trap focus. Slides are a content
+collection (§4) with the same `draft` gate as articles/events/team. Reinstating it on the
+homepage is importing and rendering `<Carousel />` again in `index.astro` — the component
+itself needs no changes — but do that alongside supplying real photography, not before;
+see §9 on build vs. launch for why placeholder slides were never meant to stay the
+permanent state.
+
+**Recruitment timeline**, directly above the recruiting block, leading into it: "Join
+BSGT" over three milestones (Applications open, Associations on display, Applications
+close), shown as a horizontal gold hairline with three markers at desktop widths,
+stacking to a vertical rule down the left side below ~700px. State — past (filled marker,
+dimmed label) / current-or-next (marker emphasised in gold) / future (outlined marker,
+normal-weight label) — is derived from the dates at build time, never hardcoded; the
+whole section is absent from the page outright once the build date is past the round's
+close date, so it can never sit there advertising a closed round. Dates and copy live in
+one data file, not the template — see CLAUDE.md's "Recruitment timeline" section for the
+exact mechanism.
 
 **Recruiting block**, at the end of the page: a quiet, large statement ("Think beyond the
 vessel.") set back against the navy — deliberately lower-contrast than the foreground, but
@@ -279,9 +297,12 @@ and quieter than Recruiting — a normal in-page section heading, no button, no 
 type — so it reads as a closing footnote to the page, not a second CTA competing with Apply.
 Both the email and the two profile URLs come from one shared data file
 (`src/data/contact.ts`), never hardcoded per page — the exact public-facing URLs, with no
-session/admin tracking parameters. The same two social links also appear as small icon-only
-links in the site footer (every page, not just the homepage), each with `target="_blank"
-rel="noopener noreferrer"` and its own `aria-label` naming the platform. All icons are
+session/admin tracking parameters. The same two social links, and the same email address,
+also appear in the site footer (every page, not just the homepage) — the social links as
+small icon-only links, each with `target="_blank" rel="noopener noreferrer"` and its own
+`aria-label` naming the platform; the email as a small, quiet `mailto:` link beside them,
+deliberately not the full-strength treatment the homepage's own contact section gives it.
+All icons are
 hand-drawn inline SVG in the repo — no icon library, no CDN, consistent with the no-embeds
 constraint (§2). Both profile URLs and the email also appear as `sameAs` and a
 `ContactPoint` on the homepage's Organization JSON-LD, so search engines can treat the
@@ -401,12 +422,14 @@ Supplied in `/brand`:
 - `favicon.svg` — a deliberately heavier-weight redraw of the same mark. The full-size
   mark's hairlines vanish below about 48px, so the favicon is its own drawing. Do not
   substitute one for the other.
-- `vessel.jpg` — the first real photograph supplied for the site, used as the first slide
-  of the homepage carousel. More photography will follow; until it does, the remaining
-  carousel slides are clearly-marked placeholders (see §3).
+- `vessel.jpg` — the first real photograph supplied for the site, the one real slide in
+  the `slides` collection. The homepage carousel that would show it isn't currently
+  rendered (see §3) — the collection and the photo are both still in the repo, ready for
+  whenever it's reinstated alongside more photography.
 - `vessel-silhouette.svg` — a detailed container-vessel silhouette in gold (hull, bow,
   bridge, funnel, individual containers, masts), currentColor-based. Used as the
-  scroll-linked background behind the About/carousel region (see §3). Inlined into
+  scroll-linked background behind the hero and About region (see §3) — not the carousel,
+  which it never runs behind. Inlined into
   `src/components/VesselSilhouette.astro` rather than referenced by URL, so currentColor
   works — that inlined copy is the one actually served; the copy under `public/` is kept
   only for reference and isn't loaded by the site. If this file is edited, the inlined
@@ -508,8 +531,9 @@ still matters, the same as on `.wrap` pages.
 
 Motion: one deliberate moment at most — **except the homepage**, which carries two scoped,
 intentional exceptions: the hero (ambient mark animation, intro sequence, staggered content
-reveal) and the scroll-linked vessel behind the About/carousel region below it — deliberately
-never both moving in the same view at once (see §3). Everywhere else on the site, no
+reveal) and the scroll-linked vessel, which now runs behind the hero as well as About — the
+two are deliberately allowed to move in the same view at once (see §3; this reverses an
+earlier version of the spec that kept them apart). Everywhere else on the site, no
 fade-and-slide on every section.
 
 ### Quality floor
