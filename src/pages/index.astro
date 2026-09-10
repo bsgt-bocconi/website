@@ -5,7 +5,9 @@ import Mark from '../components/Mark.astro';
 import Carousel from '../components/Carousel.astro';
 import VesselSilhouette from '../components/VesselSilhouette.astro';
 import ApplyButton from '../components/ApplyButton.astro';
+import SocialIcon from '../components/SocialIcon.astro';
 import { divisions } from '../data/divisions';
+import { CONTACT_EMAIL, SOCIAL_LINKS } from '../data/contact';
 ---
 
 <BaseLayout
@@ -153,6 +155,36 @@ import { divisions } from '../data/divisions';
     <div class="wrap-wide">
       <p class="statement">Think beyond the vessel.</p>
       <ApplyButton />
+    </div>
+  </section>
+
+  <section class="contact-section on-dark">
+    <div class="wrap-wide">
+      <h2>Contact us</h2>
+      <p class="contact-intro">We are open to external partnerships and collaborations.</p>
+
+      <div class="contact-columns">
+        <div class="contact-block">
+          <h3>Email</h3>
+          <a class="email-link" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        </div>
+
+        <div class="contact-block">
+          <h3>Follow us</h3>
+          <ul class="social-list">
+            {
+              SOCIAL_LINKS.map((link) => (
+                <li>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer">
+                    <SocialIcon name={link.icon} />
+                    <span>{link.name}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 </BaseLayout>
@@ -963,5 +995,97 @@ import { divisions } from '../data/divisions';
      statement text is this page's concern, not the button's. */
   .recruiting :global(.apply-btn) {
     margin-top: 2rem;
+  }
+
+  /* Contact — the actual closing section, after Apply. Deliberately
+     smaller and quieter than .recruiting: no oversized display type, no
+     button, just a heading sized like the other in-page section headings
+     (.divisions-heading uses the same text-2xl/0.7-opacity treatment) so
+     it reads as a footnote to the page rather than a second CTA
+     competing with Apply for attention. Contrast verified, not assumed:
+     heading (paper @0.7) ~8.83:1, intro (paper @0.75) ~10.05:1, gold
+     labels/full-opacity paper links comfortably higher still — all far
+     past the 4.5:1 AA floor. */
+  .contact-section {
+    background: var(--color-navy-deep);
+    padding-block: 4rem;
+  }
+
+  .contact-section h2 {
+    font-size: var(--text-2xl);
+    color: var(--color-paper);
+    opacity: 0.7;
+  }
+
+  .contact-intro {
+    margin-top: 0.5rem;
+    max-width: 40ch;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    color: var(--color-paper);
+    opacity: 0.75;
+  }
+
+  .contact-columns {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.5rem 5rem;
+  }
+
+  .contact-block h3 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-gold);
+  }
+
+  .email-link {
+    display: inline-block;
+    margin-top: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    color: var(--color-paper);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+  }
+
+  .email-link:hover {
+    color: var(--color-gold);
+  }
+
+  .social-list {
+    margin: 0.625rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .social-list a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    color: var(--color-paper);
+    text-decoration: none;
+  }
+
+  .social-list a:hover {
+    color: var(--color-gold);
+  }
+
+  /* The icon here sits next to its own visible label (span), so the
+     icon itself stays aria-hidden (set in SocialIcon.astro) — the
+     accessible name comes from the text, not the glyph. */
+  .social-list :global(svg) {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
   }
 </style>

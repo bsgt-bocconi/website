@@ -271,6 +271,24 @@ failing contrast — with one prominent "Apply" button linking out to the member
 (external, `rel="noopener"`, opens in a new tab). The form itself handles which
 division/track the applicant wants; the site does not build separate buttons per division.
 
+**Contact section**, the true last section on the page, after Recruiting: "Contact us" / "We
+are open to external partnerships and collaborations.", then an email address (a `mailto:`
+link) and a "Follow us" pair of social links (Instagram, LinkedIn), each an icon plus its
+platform name so the icon never needs to carry its own accessible name. Deliberately smaller
+and quieter than Recruiting — a normal in-page section heading, no button, no display-sized
+type — so it reads as a closing footnote to the page, not a second CTA competing with Apply.
+Both the email and the two profile URLs come from one shared data file
+(`src/data/contact.ts`), never hardcoded per page — the exact public-facing URLs, with no
+session/admin tracking parameters. The same two social links also appear as small icon-only
+links in the site footer (every page, not just the homepage), each with `target="_blank"
+rel="noopener noreferrer"` and its own `aria-label` naming the platform. All icons are
+hand-drawn inline SVG in the repo — no icon library, no CDN, consistent with the no-embeds
+constraint (§2). Both profile URLs and the email also appear as `sameAs` and a
+`ContactPoint` on the homepage's Organization JSON-LD, so search engines can treat the
+website and the two social profiles as one entity — added once real, confirmed profiles
+existed; deliberately left out before that, since unconfirmed placeholders in structured
+data are worse than omitting the field.
+
 ### Team
 
 Committee members with name, role, and degree programme. Photos optional — see §7 for the

@@ -218,6 +218,57 @@ the codebase. Used on the homepage recruiting block and on every division page �
 form URL ever changes, it changes in exactly one file. Layout-agnostic on purpose (no
 margin of its own); callers add their own spacing around it.
 
+**Contact & social.** `src/data/contact.ts` — same small-typed-data-file pattern as
+`divisions.ts` — is the single source for both `CONTACT_EMAIL` (`as.bsgt@unibocconi.it`;
+was `as.bsgt@studbocconi.it` until that was caught and fixed — wrong address, not a typo
+in a domain) and `SOCIAL_LINKS` (Instagram + LinkedIn, each `{ name, icon, url }`). Every
+place that needs either imports from here — never hardcode the email or a profile URL
+again. The two URLs are the exact public-facing profile addresses; the versions
+originally supplied carried `?stkn=` and `?viewAsMember=true`, session/admin-preview
+artefacts that must never appear on a public page — stripped before they ever reached
+this file.
+
+*Homepage* — a dedicated `<section class="contact-section on-dark">`, the true last
+section before the footer (after `.recruiting`): "Contact us" / "We are open to external
+partnerships and collaborations.", then two columns — Email (the mailto link) and Follow
+us (icon + visible label per platform, from `SOCIAL_LINKS`). Deliberately smaller and
+quieter than `.recruiting` above it — no oversized display type, no button, heading sized
+like the page's other in-flow section headings (`.divisions-heading`'s same
+`text-2xl`/`0.7`-opacity treatment) specifically so it reads as a closing footnote rather
+than a second call-to-action competing with Apply. Contrast verified: heading (paper
+@0.7) ~8.83:1, intro (paper @0.75) ~10.05:1, gold labels and full-opacity paper links
+higher still — all well past 4.5:1 AA.
+
+*Footer* (`Footer.astro`, every page): the same two `SOCIAL_LINKS` as small icon-only
+links next to the page nav, `target="_blank" rel="noopener noreferrer"`, each with its
+own `aria-label` (its `name`) since there's no visible text here to supply an accessible
+name the way the homepage section's icon+label pairing does.
+
+**`SocialIcon.astro`**: hand-drawn inline SVG (`rect`/`circle`/`line`/`path` primitives,
+`currentColor` stroke) for `instagram` and `linkedin` — no icon library, no CDN, nothing
+fetched at runtime, per the no-third-party-embeds constraint below. Always
+`aria-hidden="true" focusable="false"` on the `<svg>` itself; it never carries its own
+accessible name — that's the caller's job (visible text on the homepage, `aria-label` on
+the enclosing link in the footer). Don't call it without arranging one or the other.
+
+**Organization JSON-LD** (`BaseLayout.astro`): `sameAs` (both `SOCIAL_LINKS` URLs) and a
+`ContactPoint` (`CONTACT_EMAIL`) were added once real, confirmed profiles existed — both
+were deliberately omitted before that, since publishing `sameAs` against unconfirmed or
+placeholder profiles would be worse than omitting it. Sourced from the same
+`src/data/contact.ts`, so the structured data can't drift from what the page itself
+actually publishes.
+
+**Known gap, flagged not fixed:** `Footer.astro`'s `.site-footer` carries
+`margin-top: 4rem`, which leaves a visible band of the page's default `paper` background
+between the footer and whatever precedes it — invisible on light (`paper`) pages, where
+the gap matches the surrounding colour, but a jarring light strip on every `navy-deep`
+page (homepage, `/team`, `/events`) where a dark section sits directly above the footer.
+Pre-existing — confirmed via `git show` against the commit before the contact-section
+work, not introduced by it — and out of scope for that task, so noted here rather than
+silently fixed. Whoever picks this up: the margin needs to come from something page-aware
+(or from each page's own last-section bottom padding) rather than a flat, unconditional
+value on the shared footer component.
+
 `/team` and `/events` are also `navy-deep` now — see "Light vs dark grounds" below
 before touching either.
 

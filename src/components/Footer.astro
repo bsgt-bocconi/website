@@ -1,5 +1,7 @@
 ---
 import Mark from './Mark.astro';
+import SocialIcon from './SocialIcon.astro';
+import { SOCIAL_LINKS } from '../data/contact';
 
 const year = new Date().getFullYear();
 
@@ -21,17 +23,30 @@ const nav = [
       </a>
       <p>Bocconi Shipping &amp; Global Trade Student Association</p>
     </div>
-    <nav aria-label="Footer">
-      <ul>
+    <div class="footer-nav-group">
+      <nav aria-label="Footer">
+        <ul>
+          {
+            nav.map((item) => (
+              <li>
+                <a href={item.href}>{item.label}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <ul class="social-icons" aria-label="BSGT on social media">
         {
-          nav.map((item) => (
+          SOCIAL_LINKS.map((link) => (
             <li>
-              <a href={item.href}>{item.label}</a>
+              <a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={link.name}>
+                <SocialIcon name={link.icon} />
+              </a>
             </li>
           ))
         }
       </ul>
-    </nav>
+    </div>
   </div>
   <div class="wrap">
     <p class="legal">© {year} BSGT, Università Bocconi student association.</p>
@@ -107,6 +122,40 @@ const nav = [
 
   nav a:hover {
     color: var(--color-gold);
+  }
+
+  /* Groups the page-nav list and the social icons together on the right
+     side of .top's space-between row, stacked with a little air between
+     them rather than crowded onto one line. */
+  .footer-nav-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  .social-icons {
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .social-icons a {
+    display: flex;
+    color: var(--color-paper);
+    opacity: 0.75;
+  }
+
+  .social-icons a:hover {
+    color: var(--color-gold);
+    opacity: 1;
+  }
+
+  .social-icons :global(svg) {
+    width: 1.125rem;
+    height: 1.125rem;
   }
 
   .legal {

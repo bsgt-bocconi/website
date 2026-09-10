@@ -1,6 +1,7 @@
 ---
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import { CONTACT_EMAIL, SOCIAL_LINKS } from '../data/contact';
 import '../styles/tokens.css';
 import '../styles/fonts.css';
 import '../styles/global.css';
@@ -27,6 +28,18 @@ const organizationJsonLd = {
   alternateName: 'BSGT',
   url: Astro.site?.href,
   logo: new URL('/favicon.svg', Astro.site).href,
+  // Ties the website to the same entity's confirmed social profiles —
+  // deliberately omitted until now, since publishing sameAs against
+  // profiles that hadn't been confirmed as real/current would have been
+  // worse than omitting it. Both come from src/data/contact.ts, the same
+  // source the homepage contact section and footer use, so this can't
+  // drift from what's actually published on the page.
+  sameAs: SOCIAL_LINKS.map((link) => link.url),
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: CONTACT_EMAIL,
+    contactType: 'general inquiries',
+  },
 };
 ---
 
