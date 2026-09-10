@@ -3,28 +3,22 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import TeamMemberCard from '../components/TeamMemberCard.astro';
 
-const allMembers = await getCollection(
-  'team',
-  ({ data }) => import.meta.env.DEV || data.draft === false,
-);
+// The schema still has `group` (board | departments | directors) — kept
+// deliberately, not removed, so re-introducing the three-tier layout
+// later is a template change here, not a content-schema migration. This
+// page just doesn't render on it right now: everyone sits in one flat
+// section. GROUP_RANK is only used to keep the overall sequence stable
+// (board, then departments, then directors) while flattening — `order`
+// alone can't do that on its own, since it's scoped within a group, not
+// global (two people in different groups can share the same order).
+const GROUP_RANK = { board: 0, departments: 1, directors: 2 } as const;
 
-// Order here is the page order top to bottom — board, then departments,
-// then the remaining directors/leads — not alphabetical or anything
-// derived from the data itself.
-const GROUPS = [
-  { key: 'board', heading: 'BSGT Board' },
-  { key: 'departments', heading: 'Main Departments' },
-  { key: 'directors', heading: 'Board Directors & Leads' },
-] as const;
-
-const sections = GROUPS.map((group) => ({
-  ...group,
-  members: allMembers
-    .filter((member) => member.data.group === group.key)
-    .sort((a, b) => a.data.order - b.data.order),
-}));
-
-const hasAnyMembers = allMembers.length > 0;
+const members = (
+  await getCollection('team', ({ data }) => import.meta.env.DEV || data.draft === false)
+).sort((a, b) => {
+  const rankDiff = GROUP_RANK[a.data.group] - GROUP_RANK[b.data.group];
+  return rankDiff !== 0 ? rankDiff : a.data.order - b.data.order;
+});
 ---
 
 <BaseLayout
@@ -35,28 +29,20 @@ const hasAnyMembers = allMembers.length > 0;
     <div class="wrap-wide">
       <header class="page-header">
         <h1>The Team</h1>
-        <p class="dek">The committee behind BSGT's lectures, workshops, research, and events.</p>
+        <p class="dek">The committee behind BSGT.</p>
       </header>
 
       {
-        !hasAnyMembers ? (
+        members.length === 0 ? (
           <p class="empty">The committee roster hasn't been published yet.</p>
         ) : (
-          sections.map(
-            (section) =>
-              section.members.length > 0 && (
-                <section class={`team-section team-section--${section.key}`}>
-                  <h2>{section.heading}</h2>
-                  <ul class="team-grid">
-                    {section.members.map((member) => (
-                      <li>
-                        <TeamMemberCard member={member} />
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ),
-          )
+          <ul class="team-grid">
+            {members.map((member) => (
+              <li>
+                <TeamMemberCard member={member} />
+              </li>
+            ))}
+          </ul>
         )
       }
     </div>
@@ -71,11 +57,8 @@ const hasAnyMembers = allMembers.length > 0;
   .team-page {
     background: var(--color-navy-deep);
     color: var(--color-paper);
-    /* Bottom was 4rem, matching the other dark pages' shared convention
-       — but this page's cards each carry their own tall, airy 4:5
-       placeholder box, so the same 4rem read as noticeably more space
-       than it does on a denser page like /events. Tightened here
-       specifically, not sitewide. */
+    /* Bottom tightened from the sitewide 4rem — see CLAUDE.md's "Team
+       page" section for why this page specifically needed less. */
     padding-block: 3rem 2rem;
   }
 
@@ -95,58 +78,30 @@ const hasAnyMembers = allMembers.length > 0;
     opacity: 0.75;
   }
 
-  .team-section + .team-section {
-    margin-top: 3.5rem;
-    padding-top: 3.5rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-paper) 15%, transparent);
-  }
-
-  .team-section h2 {
-    font-family: var(--font-serif);
-    font-size: var(--text-xl);
-    /* Same "quiet section heading" treatment used elsewhere on dark
-       grounds (e.g. the homepage's .divisions-heading) — distinguishes
-       the three tiers clearly without competing with "The Team" above
-       them. Verified: paper @0.7 vs navy-deep is ~8.83:1, well past AA. */
-    color: var(--color-paper);
-    opacity: 0.7;
-  }
-
+  /* One flat grid, four across — 11 people doesn't divide evenly (4/4/3),
+     and that's fine: a short final row is left where the grid naturally
+     places it, not stretched or centred to disguise the count. Order
+     still carries meaning even with no section headings any more —
+     President/VPs, then department heads, then directors/leads, reading
+     top-to-bottom, left-to-right — so this is a plain source-order grid,
+     not anything that reorders visually. */
   .team-grid {
     margin: 1.75rem 0 0;
     padding: 0;
     list-style: none;
     display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 2rem 2.5rem;
   }
 
-  /* Explicit, group-specific column counts rather than one shared
-     auto-fill grid — chosen so each breakpoint's column count divides
-     the group's actual member count evenly (3 for board; 4, 2, or 1 for
-     the two 4-person groups), so nothing ever wraps to a lone orphan
-     card on its own row. auto-fill/auto-fit can't guarantee that for a
-     fixed, known item count — it fits as many columns as the container
-     allows, independent of how many items there are to fill them. */
-  .team-section--board .team-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .team-section--departments .team-grid,
-  .team-section--directors .team-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
   @media (max-width: 900px) {
-    .team-section--departments .team-grid,
-    .team-section--directors .team-grid {
+    .team-grid {
       grid-template-columns: repeat(2, 1fr);
     }
   }
 
   @media (max-width: 560px) {
-    .team-section--board .team-grid,
-    .team-section--departments .team-grid,
-    .team-section--directors .team-grid {
+    .team-grid {
       grid-template-columns: 1fr;
     }
   }

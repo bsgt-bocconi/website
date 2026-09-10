@@ -295,14 +295,17 @@ Committee members with name, role, and degree programme. Photos optional — see
 consent requirement before publishing any. `navy-deep` ground — see "Light vs dark grounds"
 below.
 
-Sectioned into three fixed tiers, via a `group` field on the schema (`board` |
-`departments` | `directors`), rendered in that order regardless of the collection's own
-file order: **BSGT Board**, **Main Departments**, **Board Directors & Leads**. Each tier
-is its own grid, sorted independently by an `order` field scoped to that group (not
-global — two members in different groups can share an `order` value). Grid columns are
-explicit per group rather than a fluid auto-fit/auto-fill layout, specifically so a
-group's known member count always divides evenly across columns at every breakpoint —
-no lone card left orphaned on its own row.
+Renders as one flat grid currently — no section headings, no visual split by tier. The
+schema still carries a `group` field (`board` | `departments` | `directors`) on every
+entry, kept specifically so a tiered layout can come back later as a template change, not
+a re-migration of existing content; it just isn't read for display right now. Order still
+matters without headings to carry it: members sort by group rank first (board, then
+departments, then directors) and by their own group-scoped `order` second, so the page
+still reads top-to-bottom as seniority — President, VPs, department heads, directors and
+leads — even with no heading marking where one tier ends and the next begins. Grid is a
+plain four-across layout; an 11-person roster doesn't divide evenly into that, and the
+resulting short last row is left as CSS grid's own default (left-aligned, not
+stretched or centred to disguise the count) rather than treated as something to fix.
 
 With no photograph yet for a member, the card shows a deliberate placeholder instead of a
 broken image or a generic avatar silhouette: a `navy-mid` panel, gold border, the

@@ -578,27 +578,30 @@ full.
 
 ## Team page
 
-`/team` sections the roster into three fixed tiers by `group`, always in this order
-regardless of collection file order: **BSGT Board** (`board`), **Main Departments**
-(`departments`), **Board Directors & Leads** (`directors`). `team.astro` filters the full
-`getCollection('team', ...)` result once per group and sorts each group independently by
-its own `order` — a section with zero members (draft-filtered to nothing, or simply no
-entries in that tier yet) renders nothing for that heading rather than an empty grid; the
-page falls back to the existing "roster hasn't been published yet" message only when
-*every* group is empty.
+`/team` currently renders the whole roster as **one flat grid, no section headings** —
+not grouped by tier. The schema still has `group` (`board` | `departments` | `directors`)
+and every entry still sets it; the field was deliberately kept rather than removed when
+the three-heading layout was dropped, specifically so re-introducing tiered sections later
+is a template change in `team.astro`, not a content-schema migration touching every
+entry again. Don't delete `group` from the schema just because nothing currently reads it
+for display.
 
-**Grid columns are explicit per group, not `auto-fill`/`auto-fit`.** With a fixed, known
-member count per tier (currently 3/4/4), a fluid auto-fill grid can't guarantee an even
-last row — it fits as many columns as the container allows, independent of how many
-cards there are to fill them, so a 4-person group at a width that fits 3 columns produces
-a lone orphan card on its own row. Each group's `.team-grid` instead gets
-`grid-template-columns` values chosen to divide that group's actual count evenly at every
-breakpoint: `.team-section--board` is `repeat(3, 1fr)` throughout (only ever wraps to a
-single column below 560px, where every group drops to one column and orphan rows are
-moot); `.team-section--departments`/`--directors` are `repeat(4, 1fr)` above 900px,
-`repeat(2, 1fr)` between 560–900px (4 members ÷ 2 = 2 even rows), and `repeat(1, 1fr)`
-below that. If the roster's per-group counts ever change, these column counts need
-revisiting — they're tuned to 3/4/4, not derived from the data.
+**Order still carries real meaning with no headings to signal it.** `team.astro` sorts by
+a `GROUP_RANK` lookup (`board` = 0, `departments` = 1, `directors` = 2) first, then by
+each member's own `order` within that rank — `order` alone can't produce the right
+sequence, since it's scoped *within* a group, not global, and two people in different
+groups can share a value. The result reads top-to-bottom, left-to-right as seniority:
+President → VPs → department heads → directors/leads, exactly the sequence the three
+headings used to make explicit visually. Don't resort this to alphabetical or
+collection-file order.
+
+**Grid is a plain `repeat(4, 1fr)`, not tuned per any group any more.** With one flat
+list of 11 people, four across doesn't divide evenly — 4/4/3 — and that's fine, left as
+CSS grid's own default behaviour: the last row's three cards sit left-aligned, at their
+normal width, with empty space to their right. Don't add `justify-content`/stretch rules
+to fill or centre a short last row — that's compensating for something that isn't
+actually a problem. Steps down to `repeat(2, 1fr)` at 900px and `1fr` at 560px, same
+breakpoints as before.
 
 **Photo placeholders** (`TeamMemberCard.astro`): no photographs exist yet for anyone on
 the roster, and `photo` stays optional in the schema — nothing should force a photo to
