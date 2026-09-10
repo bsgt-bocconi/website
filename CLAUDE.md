@@ -258,16 +258,34 @@ placeholder profiles would be worse than omitting it. Sourced from the same
 `src/data/contact.ts`, so the structured data can't drift from what the page itself
 actually publishes.
 
-**Known gap, flagged not fixed:** `Footer.astro`'s `.site-footer` carries
-`margin-top: 4rem`, which leaves a visible band of the page's default `paper` background
-between the footer and whatever precedes it — invisible on light (`paper`) pages, where
-the gap matches the surrounding colour, but a jarring light strip on every `navy-deep`
-page (homepage, `/team`, `/events`) where a dark section sits directly above the footer.
-Pre-existing — confirmed via `git show` against the commit before the contact-section
-work, not introduced by it — and out of scope for that task, so noted here rather than
-silently fixed. Whoever picks this up: the margin needs to come from something page-aware
-(or from each page's own last-section bottom padding) rather than a flat, unconditional
-value on the shared footer component.
+**Fixed — the footer's light gap on dark pages.** `Footer.astro`'s `.site-footer` used to
+carry `margin-top: 4rem`. A margin sits *outside* an element's own background, so it
+exposed whatever was behind it — and that was never any specific page's ground, it was
+`body`'s own default `background: paper` from `global.css`, since nothing paints behind
+`<main>` and `<footer>` except `body` itself. On light (`paper`) pages the exposed strip
+happened to match its surroundings, so it read as intentional spacing and no one noticed
+anything wrong. On every `navy-deep` page (homepage, `/team`, `/events`) the same margin
+exposed that same `paper` strip regardless — a jarring light band between two dark
+surfaces that were supposed to read as one continuous ground.
+
+The fix wasn't to replace the margin with something page-aware — every page that renders
+`<Footer />` already had its own answer to "how much space before the footer," just
+inconsistently applied twice. `.article`, `.team-page`, `.events-page`, `.division-page`,
+`.privacy`, and the homepage's `.contact-section` all already end in their own
+`padding-block` (or equivalent) ending in `4rem`, in *that page's own* correct background
+colour — a light `4rem` of `.article`'s own padding on article pages, a dark `4rem` of
+`.team-page`'s own padding on `/team`, and so on. The footer's `margin-top: 4rem` was
+redundant extra space stacked on top of that, and it was the one instance, sitewide, of
+spacing coming from `body`'s background instead of the page's own. Deleting it was the
+whole fix: `.site-footer` now has no `margin-top` at all, just its existing
+`padding-block: 2.5rem 1.5rem` for the footer's own internal breathing room. It sits flush
+against whatever precedes it on every page, and since every page already pads its own
+ending correctly, "flush" is exactly right everywhere — continuous dark-into-dark on the
+homepage/`/team`/`/events`, and a clean, deliberate light-into-dark edge on article pages
+(itself correct per "Light vs dark grounds" below — the footer is dark on every page, so
+that boundary is supposed to exist on light pages, just without an extra stray gap in
+front of it). Verified by screenshot at the bottom of all four page types, not just
+re-inspecting the CSS.
 
 `/team` and `/events` are also `navy-deep` now — see "Light vs dark grounds" below
 before touching either.

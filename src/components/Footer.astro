@@ -54,10 +54,24 @@ const nav = [
 </footer>
 
 <style>
+  /* No margin-top here on purpose — see CLAUDE.md's "Contact & social"
+     section for the diagnosis. A margin sits OUTSIDE this element's own
+     background, so it exposed whatever's behind it: body's default
+     `paper` background (global.css), invisible on light pages where it
+     happened to match, but a jarring light strip on every navy-deep page
+     where a dark section sat directly above the footer. The fix isn't
+     replacing the margin with something else — every page's own closing
+     wrapper (.article, .team-page, .events-page, .division-page,
+     .privacy, the homepage's .contact-section, ...) already carries its
+     own `padding-block` ending in 4rem, in that page's own correct
+     background colour. The footer's margin was redundant space on top of
+     that, in the wrong colour whenever the page was dark. Sitting flush
+     against whatever precedes it is the correct default; don't add a
+     margin back here to "fix spacing" without checking whether the page
+     you're looking at is one of the ones already padding itself. */
   .site-footer {
     background: var(--color-navy-deep);
     color: var(--color-paper);
-    margin-top: 4rem;
     padding-block: 2.5rem 1.5rem;
   }
 
