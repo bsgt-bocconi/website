@@ -7,7 +7,57 @@ interface Props {
 }
 
 const { member } = Astro.props;
-const { name, role, programme, photo, linkedin } = member.data;
+const { name, role, programme, photo, photoFocus, linkedin } = member.data;
+
+// The photo keeps its own aspect ratio through the pipeline (width and
+// height below match the source's) and is cropped to 4:5 in CSS, not at
+// build time — Astro's sharp service centre-crops whenever width/height
+// disagree with the source, which would throw the framing away.
+//
+// Framing, in units of the box's own width (box = 1 wide, 1.25 tall):
+// a plain cover fit draws the image max(1, 1.25 × aspect) box-widths
+// wide; `zoom` scales that up further. With photoFocus set, the image is
+// then offset so the face centre lands at FACE_X/FACE_Y in the box —
+// clamped so the image always still covers the whole box, never showing
+// a gap at an edge. Without it, it's a plain object-fit: cover favouring
+// the upper portion (see the CSS), right for a head-and-shoulders shot.
+const FACE_X = 0.5;
+const FACE_Y = 0.38; // fraction of the box's height, from the top
+const BOX_H = 1.25;
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+const coverW = photo ? Math.max(1, (BOX_H * photo.width) / photo.height) : 1;
+const drawnW = coverW * (photoFocus?.zoom ?? 1);
+let frameStyle: string | undefined;
+if (photo && photoFocus) {
+  const drawnH = (drawnW * photo.height) / photo.width;
+  const left = clamp(FACE_X - photoFocus.x * drawnW, 1 - drawnW, 0);
+  const top = clamp(FACE_Y * BOX_H - photoFocus.y * drawnH, BOX_H - drawnH, 0);
+  const pct = (v: number) => `${(v * 100).toFixed(2)}%`;
+  frameStyle = [
+    'position: absolute',
+    'max-width: none', // global.css caps img at 100%
+    `width: ${pct(drawnW)}`,
+    `height: ${pct(drawnH / BOX_H)}`,
+    `left: ${pct(left)}`,
+    `top: ${pct(top / BOX_H)}`,
+  ].join('; ');
+}
+
+// `sizes` reports the width the image is actually drawn at (drawnW box-
+// widths), not just the card's width, so the browser picks a srcset
+// candidate sharp enough for the crop. Box widths mirror team.astro's
+// grid: 4 columns (2.5rem gaps) inside wrap-wide's 75rem minus 3rem
+// padding; 2 columns at ≤900px; 1 at ≤560px.
+const f = drawnW.toFixed(3);
+const sizes = [
+  `(max-width: 560px) calc((100vw - 3rem) * ${f})`,
+  `(max-width: 900px) calc((100vw - 5.5rem) / 2 * ${f})`,
+  `calc((min(100vw, 75rem) - 10.5rem) / 4 * ${f})`,
+].join(', ');
+const widths = photo
+  ? [...[400, 600, 800, 1200].filter((w) => w < photo.width), photo.width]
+  : [];
 
 // First + last word's initial — "Niki Xanthopoulou-Sisini" -> "NX",
 // "Zeynep Eylül Öksüz" -> "ZÖ" (middle names, if any, are skipped, same
@@ -24,7 +74,16 @@ function initials(fullName: string): string {
   {
     photo ? (
       <div class="member-photo">
-        <Image src={photo} alt={`Photo of ${name}`} width={480} height={600} loading="lazy" />
+        <Image
+          src={photo}
+          alt={`${name}, ${role}`}
+          width={photo.width}
+          height={photo.height}
+          widths={widths}
+          sizes={sizes}
+          loading="lazy"
+          style={frameStyle}
+        />
       </div>
     ) : (
       // Deliberate, not broken: a navy panel with the person's own
@@ -55,6 +114,7 @@ function initials(fullName: string): string {
      the same frame either way, and if a future photo ever fails to
      load, this navy fill is what's left behind instead of a blank gap. */
   .member-photo {
+    position: relative;
     aspect-ratio: 4 / 5;
     border-radius: 4px;
     overflow: hidden;
@@ -67,6 +127,10 @@ function initials(fullName: string): string {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* Favour the upper portion so a centre crop doesn't cut through a
+       face. Entries with photoFocus override all of this inline with an
+       absolutely-positioned crop computed in the frontmatter. */
+    object-position: 50% 20%;
   }
 
   .member-photo--placeholder {

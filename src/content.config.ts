@@ -52,6 +52,20 @@ const team = defineCollection({
       group: z.enum(['board', 'departments', 'directors']),
       programme: z.string().optional(),
       photo: image().optional(),
+      // How `photo` is framed in the card's 4:5 box. x/y: the face's
+      // centre as a fraction of the source image (0–1, from top-left);
+      // zoom: how far to crop in beyond a plain cover fit. Unset = a plain
+      // cover fit favouring the upper portion, right for a head-and-
+      // shoulders shot. Set it for full-length or wide shots so the face
+      // lands at the same size and height as everyone else's — see
+      // TeamMemberCard for the maths.
+      photoFocus: z
+        .object({
+          x: z.number().min(0).max(1),
+          y: z.number().min(0).max(1),
+          zoom: z.number().min(1).max(3).default(1),
+        })
+        .optional(),
       linkedin: z.string().url().optional(),
       order: z.number(),
       draft: z.boolean().default(true),

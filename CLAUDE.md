@@ -716,8 +716,33 @@ to fill or centre a short last row — that's compensating for something that is
 actually a problem. Steps down to `repeat(2, 1fr)` at 900px and `1fr` at 560px, same
 breakpoints as before.
 
-**Photo placeholders** (`TeamMemberCard.astro`): no photographs exist yet for anyone on
-the roster, and `photo` stays optional in the schema — nothing should force a photo to
+**Photos** (`src/assets/team/<slug>.jpeg`, wired via each entry's `photo`): eight of
+eleven members have one; Niki Xanthopoulou-Sisini, Konstantinos Kaisaris and Alex
+Murray-Bruce don't yet and keep the initials placeholder. Alt text is exactly
+`"<name>, <role>"`, nothing else. The supplied photos vary wildly — two tight headshots,
+the rest full-length or wide campus shots with the face mid-frame — so a single
+`object-position` couldn't frame them consistently (tried: no face was cut off, but the
+full-length shots came out as small distant figures beside close-up headshots, which
+read as half-finished). Hence the optional **`photoFocus: { x, y, zoom }`** field: face
+centre as a fraction of the source image, plus crop-in. `TeamMemberCard` computes an
+absolutely-positioned crop at build time that lands the face at 50%/38% of the 4:5 box,
+clamped so the image always covers the box; entries without it fall back to plain
+`object-fit: cover` at `object-position: 50% 20%` (right for a headshot). When adding a
+new full-length photo, estimate x/y from the image and pick a zoom that matches the
+existing face size (~1.6–1.8 for the current campus shots), then screenshot. Images keep
+their source aspect through the pipeline (width/height = source's) — Astro's sharp
+service centre-crops at build when width/height disagree with the source, which would
+defeat the framing. `sizes` accounts for the image being drawn wider than the card.
+Page weight: ~160KB before photos, ~570KB (desktop 1×) / ~690KB (2×) / ~730KB (mobile 3×)
+after, measured as decoded bytes in a headless browser after scrolling everything in.
+
+**Group photo** (`team.astro`): picked up automatically via `import.meta.glob` from
+`src/assets/team/group-photo.{jpg,jpeg,png,webp}` — drop a file in, no template change.
+Absent, a same-frame 16:9 `navy-mid` panel with a gold serif "The BSGT Committee" label
+renders instead. Full `wrap-wide` width at 16:9 is ~648px tall at 1280px wide, so it
+fills the first screen at 1280×800 — a known trade-off of the spec'd ratio.
+
+**Photo placeholders** (`TeamMemberCard.astro`): `photo` stays optional in the schema — nothing should force a photo to
 exist before a member can be added. When absent, the card renders a `navy-mid` panel,
 gold `1px` border (same treatment as the division cards' border, already verified ~3.7:1
 against `navy-mid` — a non-text but functional boundary, not decoration), with the
