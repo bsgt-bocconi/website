@@ -716,9 +716,9 @@ to fill or centre a short last row — that's compensating for something that is
 actually a problem. Steps down to `repeat(2, 1fr)` at 900px and `1fr` at 560px, same
 breakpoints as before.
 
-**Photos** (`src/assets/team/<slug>.jpeg`, wired via each entry's `photo`): ten of
-eleven members have one; Konstantinos Kaisaris doesn't yet and keeps the initials
-placeholder. Alt text is exactly
+**Photos** (`src/assets/team/<slug>.jpeg`, wired via each entry's `photo`): all eleven
+current members have one, so no initials placeholders render today — the placeholder
+path below stays in place for any future member added before their photo exists. Alt text is exactly
 `"<name>, <role>"`, nothing else. The supplied photos vary wildly — two tight headshots,
 the rest full-length or wide campus shots with the face mid-frame — so a single
 `object-position` couldn't frame them consistently (tried: no face was cut off, but the
@@ -733,8 +733,8 @@ existing face size (~1.6–2.2 for the current campus shots), then screenshot. I
 their source aspect through the pipeline (width/height = source's) — Astro's sharp
 service centre-crops at build when width/height disagree with the source, which would
 defeat the framing. `sizes` accounts for the image being drawn wider than the card.
-Page weight: ~160KB before photos; with ten photos + the group photo, ~690KB (desktop
-1×) / ~940KB (2×) / ~990KB (mobile 3×), measured as decoded bytes in a headless browser
+Page weight: ~160KB before photos; with all eleven photos + the group photo, ~710KB
+(desktop 1×) / ~980KB (2×) / ~1.09MB (mobile 3×), measured as decoded bytes in a headless browser
 after scrolling everything in.
 
 **Group photo** (`team.astro`): picked up automatically via `import.meta.glob` from
